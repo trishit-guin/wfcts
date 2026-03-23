@@ -1,30 +1,12 @@
 import { useState } from 'react'
+import { useWFCTS } from '../context/WFCTSContext'
 import { formatDate } from '../utils/formatDate'
-
-const initialSessions = [
-  {
-    id: 1,
-    title: 'Generative AI in Education',
-    speaker: 'Dr. Ritu Malhotra',
-    date: '2026-03-05',
-    proofUploaded: true,
-    proofName: 'genai-session-proof.pdf',
-  },
-  {
-    id: 2,
-    title: 'Cloud Security Essentials',
-    speaker: 'Mr. Karan Joshi',
-    date: '2026-02-22',
-    proofUploaded: false,
-    proofName: '',
-  },
-]
 
 function ProofBadge({ uploaded, name }) {
   if (uploaded) {
     return (
       <span className="text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
-        Uploaded{ name ? `: ${name}` : '' }
+        Uploaded{name ? `: ${name}` : ''}
       </span>
     )
   }
@@ -37,8 +19,10 @@ function ProofBadge({ uploaded, name }) {
 }
 
 export default function IndustrySessions() {
-  const [sessions, setSessions] = useState(initialSessions)
+  const { industrySessions, addIndustrySession } = useWFCTS()
   const [showForm, setShowForm] = useState(false)
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [form, setForm] = useState({
     title: '',
     speaker: '',
@@ -48,26 +32,34 @@ export default function IndustrySessions() {
 
   function updateField(name, value) {
     setForm((prev) => ({ ...prev, [name]: value }))
+    if (error) setError('')
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
-    if (!form.title || !form.speaker || !form.date) return
+    if (!form.title || !form.speaker || !form.date) {
+      setError('Please complete the title, speaker, and date fields.')
+      return
+    }
 
-    setSessions((prev) => [
-      {
-        id: Date.now(),
+    setIsSubmitting(true)
+    setError('')
+
+    try {
+      await addIndustrySession({
         title: form.title,
         speaker: form.speaker,
         date: form.date,
-        proofUploaded: Boolean(form.proof),
         proofName: form.proof,
-      },
-      ...prev,
-    ])
+      })
 
-    setForm({ title: '', speaker: '', date: '', proof: '' })
-    setShowForm(false)
+      setForm({ title: '', speaker: '', date: '', proof: '' })
+      setShowForm(false)
+    } catch (err) {
+      setError(err.message || 'Unable to save industry session.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -124,7 +116,7 @@ export default function IndustrySessions() {
             </div>
 
             <div>
-              <label className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">Upload Proof (UI only)</label>
+              <label className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">Upload Proof (filename only)</label>
               <input
                 type="file"
                 onChange={(e) => updateField('proof', e.target.files?.[0]?.name || '')}
@@ -132,36 +124,46 @@ export default function IndustrySessions() {
               />
             </div>
 
+            {error && <p className="text-xs text-red-500">{error}</p>}
+
             <button
               type="submit"
-              className="w-full rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold py-2.5 transition-colors"
+              disabled={isSubmitting}
+              className="w-full rounded-xl bg-gray-900 hover:bg-gray-800 disabled:opacity-70 text-white text-sm font-semibold py-2.5 transition-colors"
             >
-              Save Session
+              {isSubmitting ? 'Saving...' : 'Save Session'}
             </button>
           </form>
         </div>
       )}
 
       <div className="px-5 pt-5 pb-4 flex flex-col gap-3">
-        {sessions.map((session) => (
-          <div key={session.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <div className="flex items-start justify-between gap-3">
-              <h3 className="text-sm sm:text-base font-bold text-gray-900">{session.title}</h3>
-              <ProofBadge uploaded={session.proofUploaded} name={session.proofName} />
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="bg-gray-50 rounded-xl px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-wide text-gray-400">Speaker Name</p>
-                <p className="text-xs sm:text-sm font-semibold text-gray-700 mt-0.5">{session.speaker}</p>
-              </div>
-              <div className="bg-gray-50 rounded-xl px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-wide text-gray-400">Date</p>
-                <p className="text-xs sm:text-sm font-semibold text-gray-700 mt-0.5">{formatDate(session.date)}</p>
-              </div>
-            </div>
+        {industrySessions.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 text-center">
+            <p className="text-sm font-semibold text-gray-700">No industry sessions logged yet</p>
+            <p className="text-xs text-gray-400 mt-1">Add your first session to start tracking proof.</p>
           </div>
-        ))}
+        ) : (
+          industrySessions.map((session) => (
+            <div key={session.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-sm sm:text-base font-bold text-gray-900">{session.title}</h3>
+                <ProofBadge uploaded={session.proofUploaded} name={session.proofName} />
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400">Speaker Name</p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-700 mt-0.5">{session.speaker}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400">Date</p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-700 mt-0.5">{formatDate(session.date)}</p>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )

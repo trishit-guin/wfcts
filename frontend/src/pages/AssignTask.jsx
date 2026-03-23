@@ -1,48 +1,61 @@
-import { useState } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { useEffect, useState } from 'react'
 import { useWFCTS } from '../context/WFCTSContext'
 
-const mockTeachers = [
-  { id: 'u1', name: 'Prof. Sharma' },
-  { id: 'u4', name: 'Prof. Neha' },
-  { id: 'u5', name: 'Prof. Arjun' },
-]
-
 export default function AssignTask() {
-  const { user } = useAuth()
-  const { addTask } = useWFCTS()
+  const { addTask, teacherDirectory } = useWFCTS()
 
   const [form, setForm] = useState({
     title: '',
     description: '',
-    assignTo: mockTeachers[0].id,
+    assignTo: '',
     deadline: '',
   })
   const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!form.assignTo && teacherDirectory.length > 0) {
+      setForm((prev) => ({ ...prev, assignTo: teacherDirectory[0].id }))
+    }
+  }, [teacherDirectory, form.assignTo])
 
   function updateField(name, value) {
     setForm((prev) => ({ ...prev, [name]: value }))
+    if (message) setMessage('')
+    if (error) setError('')
   }
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault()
-    if (!form.title || !form.description || !form.assignTo || !form.deadline) return
+    if (!form.title || !form.description || !form.assignTo || !form.deadline) {
+      setError('Please fill in all task fields.')
+      return
+    }
 
-    addTask({
-      title: form.title,
-      description: form.description,
-      assignTo: form.assignTo,
-      deadline: form.deadline,
-      assignedBy: user?.name || user?.role || 'System',
-    })
+    setIsSubmitting(true)
+    setError('')
 
-    setForm({
-      title: '',
-      description: '',
-      assignTo: mockTeachers[0].id,
-      deadline: '',
-    })
-    setMessage('Task assigned successfully.')
+    try {
+      await addTask({
+        title: form.title,
+        description: form.description,
+        assignTo: form.assignTo,
+        deadline: form.deadline,
+      })
+
+      setForm({
+        title: '',
+        description: '',
+        assignTo: teacherDirectory[0]?.id || '',
+        deadline: '',
+      })
+      setMessage('Task assigned successfully.')
+    } catch (err) {
+      setError(err.message || 'Unable to assign task.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -84,7 +97,7 @@ export default function AssignTask() {
               onChange={(e) => updateField('assignTo', e.target.value)}
               className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
             >
-              {mockTeachers.map((teacher) => (
+              {teacherDirectory.map((teacher) => (
                 <option key={teacher.id} value={teacher.id}>
                   {teacher.name}
                 </option>
@@ -104,12 +117,14 @@ export default function AssignTask() {
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 transition-colors"
+            disabled={isSubmitting || teacherDirectory.length === 0}
+            className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-70 text-white text-sm font-semibold py-2.5 transition-colors"
           >
-            Submit
+            {isSubmitting ? 'Submitting...' : 'Submit'}
           </button>
 
           {message && <p className="text-xs text-emerald-700 font-medium">{message}</p>}
+          {error && <p className="text-xs text-red-500">{error}</p>}
         </form>
       </div>
     </div>

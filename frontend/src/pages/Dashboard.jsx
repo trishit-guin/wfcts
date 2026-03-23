@@ -1,17 +1,8 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
-
-const TEACHER = {
-  name: 'Prof. Ananya Sharma',
-  department: 'Computer Science',
-}
-
-const subjectPlans = [
-  { id: 1, name: 'Data Structures', section: 'B.Tech CSE - II A', requiredHours: 60, completedHours: 42 },
-  { id: 2, name: 'Algorithms', section: 'B.Tech CSE - II B', requiredHours: 54, completedHours: 38 },
-  { id: 3, name: 'Operating Systems', section: 'B.Tech CSE - III A', requiredHours: 48, completedHours: 31 },
-  { id: 4, name: 'Machine Learning', section: 'B.Tech AI - III B', requiredHours: 42, completedHours: 26 },
-]
+import { getRequiredHours } from '../utils/subjectHours'
 
 function workloadLevel(totalHours) {
   if (totalHours < 20) return { label: 'Low', color: 'bg-blue-100 text-blue-600' }
@@ -25,6 +16,7 @@ function StatCard({ label, value, sub, color }) {
     blue: 'bg-blue-50 border-blue-100 text-blue-600',
     amber: 'bg-amber-50 border-amber-100 text-amber-600',
   }
+
   return (
     <div className={`rounded-2xl border p-4 flex flex-col gap-1 ${colors[color]}`}>
       <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wide opacity-70">{label}</span>
@@ -74,23 +66,56 @@ function SubjectCard({ item }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { workEntries, substituteEntries } = useWFCTS()
 
-  const totalHours        = workEntries.reduce((acc, e) => acc + Number(e.hours), 0)
-  const pendingObligations = substituteEntries.filter((e) => e.status === 'Pending').length
-  const creditsEarned      = substituteEntries.filter((e) => e.status === 'Repaid').length
-  const workload           = workloadLevel(totalHours)
+  const teacherEntries = useMemo(
+    () => workEntries.filter((entry) => entry.teacherId === user?.id),
+    [workEntries, user?.id],
+  )
+
+  const teacherCredits = useMemo(
+    () => substituteEntries.filter((entry) => entry.teacherId === user?.id),
+    [substituteEntries, user?.id],
+  )
+
+  const subjectPlans = useMemo(() => {
+    const grouped = new Map()
+
+    for (const entry of teacherEntries) {
+      const key = `${entry.subject}|${entry.className}`
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          id: key,
+          name: entry.subject,
+          section: entry.className,
+          requiredHours: getRequiredHours(entry.subject, entry.className),
+          completedHours: 0,
+        })
+      }
+
+      grouped.get(key).completedHours += Number(entry.hours) || 0
+    }
+
+    return Array.from(grouped.values())
+      .sort((a, b) => b.completedHours - a.completedHours)
+      .slice(0, 4)
+  }, [teacherEntries])
+
+  const totalHours = teacherEntries.reduce((acc, entry) => acc + Number(entry.hours || 0), 0)
+  const pendingObligations = teacherCredits.filter((entry) => entry.status === 'Pending').length
+  const creditsEarned = teacherCredits.filter((entry) => entry.status === 'Repaid').length
+  const workload = workloadLevel(totalHours)
 
   return (
     <div className="flex flex-col min-h-full">
-      {/* Header */}
       <div className="bg-white px-5 pt-10 pb-6 shadow-sm">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs font-semibold text-emerald-500 uppercase tracking-widest mb-1">WFCTS</p>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{TEACHER.name}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{user?.name}</h1>
             <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-xs sm:text-sm text-gray-400">{TEACHER.department}</p>
+              <p className="text-xs sm:text-sm text-gray-400">{user?.department}</p>
               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${workload.color}`}>
                 {workload.label}
               </span>
@@ -99,31 +124,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="px-5 pt-6 grid grid-cols-2 gap-3">
-        <StatCard
-          label="Hours Logged"
-          value={totalHours}
-          sub="This semester"
-          color="blue"
-        />
-        <StatCard
-          label="Credits Earned"
-          value={creditsEarned}
-          sub="Repaid substitutions"
-          color="emerald"
-        />
+        <StatCard label="Hours Logged" value={totalHours} sub="This semester" color="blue" />
+        <StatCard label="Credits Earned" value={creditsEarned} sub="Repaid substitutions" color="emerald" />
         <div className="col-span-2">
-          <StatCard
-            label="Pending Obligations"
-            value={pendingObligations}
-            sub="Lectures you are owed back"
-            color="amber"
-          />
+          <StatCard label="Pending Obligations" value={pendingObligations} sub="Lectures you are owed back" color="amber" />
         </div>
       </div>
 
-      {/* Quick Actions */}
       <div className="px-5 pt-6">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Quick Actions</h2>
         <div className="flex flex-col gap-2">
@@ -151,27 +159,31 @@ export default function Dashboard() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800">Give & Take Ledger</p>
+              <p className="text-sm font-semibold text-gray-800">Give and Take Ledger</p>
               <p className="text-xs text-gray-400">Track who covered for whom</p>
             </div>
           </button>
         </div>
       </div>
 
-      {/* Subjects Taught */}
       <div className="px-5 pt-6">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Subjects Taught</h2>
-        <div className="flex flex-col gap-3">
-          {subjectPlans.map((item) => (
-            <SubjectCard key={item.id} item={item} />
-          ))}
-        </div>
+        {subjectPlans.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 text-center">
+            <p className="text-sm font-semibold text-gray-700">No teaching hours logged yet</p>
+            <p className="text-xs text-gray-400 mt-1">Log work entries to see live subject progress here.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {subjectPlans.map((item) => (
+              <SubjectCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Floating Log Work Button */}
       <div className="px-5 pb-4 pt-6">
         <button
           onClick={() => navigate('/work-entry')}

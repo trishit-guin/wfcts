@@ -1,23 +1,7 @@
 import { useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
-
-const REQUIRED_HOURS_BY_SUBJECT_CLASS = {
-  'Data Structures|FY-A': 60,
-  'Data Structures|FY-B': 60,
-  'Algorithms|SY-A': 54,
-  'Algorithms|SY-B': 54,
-  'Operating Systems|TY-A': 48,
-  'Operating Systems|TY-B': 48,
-  'Machine Learning|TY-A': 42,
-  'Machine Learning|TY-B': 42,
-  'Database Management|SY-A': 50,
-  'Database Management|SY-B': 50,
-}
-
-function getRequiredHours(subject, className) {
-  return REQUIRED_HOURS_BY_SUBJECT_CLASS[`${subject}|${className}`] ?? 48
-}
+import { getRequiredHours } from '../utils/subjectHours'
 
 function progressMeta(percent) {
   if (percent < 50) {
@@ -87,7 +71,7 @@ export default function SubjectHours() {
     const byKey = new Map()
 
     for (const entry of workEntries) {
-      const teacherId = entry.teacherId || 'u1'
+      const teacherId = entry.teacherId
       const subject = entry.subject || 'Unknown Subject'
       const className = entry.className || 'General'
       const hours = Number(entry.hours) || 0
@@ -108,7 +92,7 @@ export default function SubjectHours() {
     const byTeacher = new Map()
     for (const item of byKey.values()) {
       const requiredHours = getRequiredHours(item.subject, item.className)
-      const teacherName = teacherDirectory.find((t) => t.id === item.teacherId)?.name || item.teacherId
+      const teacherName = teacherDirectory.find((teacher) => teacher.id === item.teacherId)?.name || item.teacherId
 
       if (!byTeacher.has(item.teacherId)) {
         byTeacher.set(item.teacherId, {

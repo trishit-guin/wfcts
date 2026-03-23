@@ -2,11 +2,6 @@ import { useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
 
-const profileInfo = {
-  department: 'Computer Science',
-  email: 'prof.sharma@wfcts.edu',
-}
-
 function StatCard({ label, value, accent }) {
   return (
     <div className={`rounded-2xl border p-4 flex flex-col gap-1 ${accent}`}>
@@ -18,21 +13,26 @@ function StatCard({ label, value, accent }) {
 
 export default function Profile() {
   const { user, logout } = useAuth()
-  const { workEntries, substituteEntries } = useWFCTS()
+  const { workEntries, substituteEntries, tasks, industrySessions } = useWFCTS()
 
   const summary = useMemo(() => {
-    const lecturesTaken = workEntries.filter((entry) => entry.workType === 'Lecture').length
-    const substitutesCovered = substituteEntries.length
-    const creditsEarned = substituteEntries.filter((entry) => entry.status === 'Repaid').length
+    const userLectures = workEntries.filter(
+      (entry) => entry.teacherId === user?.id && entry.workType === 'Lecture',
+    ).length
+    const userSubstitutes = substituteEntries.filter((entry) => entry.teacherId === user?.id)
+    const completedTasks = tasks.filter(
+      (task) => task.assignTo === user?.id && task.status === 'Completed',
+    ).length
+    const sessionsCount = industrySessions.filter((session) => session.teacherId === user?.id).length
 
     return {
-      lecturesTaken,
-      substitutesCovered,
-      creditsEarned,
-      tasksCompleted: 19,
-      industrySessions: 4,
+      lecturesTaken: userLectures,
+      substitutesCovered: userSubstitutes.length,
+      creditsEarned: userSubstitutes.filter((entry) => entry.status === 'Repaid').length,
+      tasksCompleted: completedTasks,
+      industrySessions: sessionsCount,
     }
-  }, [workEntries, substituteEntries])
+  }, [workEntries, substituteEntries, tasks, industrySessions, user?.id])
 
   return (
     <div className="flex flex-col min-h-full">
@@ -42,14 +42,13 @@ export default function Profile() {
         <p className="text-xs sm:text-sm text-gray-400 mt-0.5">Personal profile and contribution summary</p>
       </div>
 
-      {/* Profile Header */}
       <div className="px-5 pt-5">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <h2 className="text-base sm:text-lg font-bold text-gray-900">{user?.name || 'Prof. Sharma'}</h2>
+          <h2 className="text-base sm:text-lg font-bold text-gray-900">{user?.name}</h2>
           <div className="mt-3 grid grid-cols-2 gap-2.5">
             <div className="bg-gray-50 rounded-xl px-3 py-2.5">
               <p className="text-[10px] uppercase tracking-wide text-gray-400">Department</p>
-              <p className="text-xs sm:text-sm font-semibold text-gray-700 mt-0.5">{profileInfo.department}</p>
+              <p className="text-xs sm:text-sm font-semibold text-gray-700 mt-0.5">{user?.department || 'N/A'}</p>
             </div>
             <div className="bg-gray-50 rounded-xl px-3 py-2.5">
               <p className="text-[10px] uppercase tracking-wide text-gray-400">Role</p>
@@ -57,13 +56,12 @@ export default function Profile() {
             </div>
             <div className="bg-gray-50 rounded-xl px-3 py-2.5 col-span-2">
               <p className="text-[10px] uppercase tracking-wide text-gray-400">Email</p>
-              <p className="text-xs sm:text-sm font-semibold text-gray-700 mt-0.5 break-all">{profileInfo.email}</p>
+              <p className="text-xs sm:text-sm font-semibold text-gray-700 mt-0.5 break-all">{user?.email || 'N/A'}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Contribution Summary */}
       <div className="px-5 pt-5">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Contribution Summary</h2>
         <div className="grid grid-cols-2 gap-3">
@@ -77,7 +75,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Logout */}
       <div className="px-5 pt-5 pb-6">
         <button
           type="button"

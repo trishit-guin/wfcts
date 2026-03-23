@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
 import { formatDate } from '../utils/formatDate'
@@ -12,11 +12,26 @@ function statusClasses(status) {
 export default function Tasks() {
   const { user } = useAuth()
   const { tasks, markTaskComplete } = useWFCTS()
+  const [busyTaskId, setBusyTaskId] = useState('')
+  const [error, setError] = useState('')
 
   const teacherTasks = useMemo(
     () => tasks.filter((task) => task.assignTo === user?.id),
     [tasks, user?.id],
   )
+
+  async function handleComplete(taskId) {
+    setBusyTaskId(taskId)
+    setError('')
+
+    try {
+      await markTaskComplete(taskId)
+    } catch (err) {
+      setError(err.message || 'Unable to complete the task.')
+    } finally {
+      setBusyTaskId('')
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-full">
@@ -27,6 +42,8 @@ export default function Tasks() {
       </div>
 
       <div className="px-5 pt-5 pb-4 flex flex-col gap-3">
+        {error && <p className="text-xs text-red-500">{error}</p>}
+
         {teacherTasks.length === 0 && (
           <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 text-center">
             <p className="text-sm font-semibold text-gray-700">No tasks assigned</p>
@@ -57,10 +74,11 @@ export default function Tasks() {
             {task.status !== 'Completed' && (
               <button
                 type="button"
-                onClick={() => markTaskComplete(task.id)}
-                className="mt-3 w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 transition-colors"
+                onClick={() => handleComplete(task.id)}
+                disabled={busyTaskId === task.id}
+                className="mt-3 w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-70 text-white text-sm font-semibold py-2.5 transition-colors"
               >
-                Mark Complete
+                {busyTaskId === task.id ? 'Updating...' : 'Mark Complete'}
               </button>
             )}
           </div>
