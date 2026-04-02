@@ -18,7 +18,7 @@ const subjects = [
 const classes = ['FY-A', 'FY-B', 'SY-A', 'SY-B', 'TY-A', 'TY-B']
 
 const workTypes = ['Lecture', 'Lab', 'Admin', 'Extra Duty']
-const initialForm = { subject: '', className: '', hours: '', workType: '' }
+const initialForm = { subject: '', className: '', hours: '', workType: '', description: '' }
 
 function Toast({ message }) {
   return (
@@ -45,6 +45,7 @@ export default function WorkEntry() {
     if (!form.className) nextErrors.className = 'Please select a class/division.'
     if (!form.hours || Number(form.hours) <= 0) nextErrors.hours = 'Enter valid hours.'
     if (!form.workType) nextErrors.workType = 'Please select a work type.'
+    if (!form.description.trim()) nextErrors.description = 'Please add a description.'
     return nextErrors
   }
 
@@ -173,6 +174,25 @@ export default function WorkEntry() {
           {errors.workType && <p className="text-xs text-red-500">{errors.workType}</p>}
         </div>
 
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-semibold text-gray-700">Description</label>
+          <textarea
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            rows={3}
+            maxLength={500}
+            placeholder="Add brief details about the work done"
+            className={`w-full bg-white border rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition resize-none ${
+              errors.description ? 'border-red-400' : 'border-gray-200'
+            }`}
+          />
+          <div className="flex items-center justify-between">
+            {errors.description ? <p className="text-xs text-red-500">{errors.description}</p> : <span />}
+            <p className="text-[11px] text-gray-400">{form.description.length}/500</p>
+          </div>
+        </div>
+
         {submitError && <p className="text-xs text-red-500">{submitError}</p>}
 
         <div className="flex-1" />
@@ -207,6 +227,7 @@ export default function WorkEntry() {
                 <div>
                   <p className="text-sm font-semibold text-gray-800">{entry.subject}</p>
                   <p className="text-xs text-gray-400">{entry.className} | {entry.workType} | {formatDate(entry.date)}</p>
+                  {entry.description && <p className="text-xs text-gray-500 mt-1">{entry.description}</p>}
                 </div>
                 <span className="text-sm font-bold text-emerald-600 shrink-0">{entry.hours}h</span>
               </div>

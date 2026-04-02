@@ -27,6 +27,12 @@ const workEntrySchema = new mongoose.Schema(
       enum: ['Lecture', 'Lab', 'Admin', 'Extra Duty'],
       required: true,
     },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 500,
+    },
     date: {
       type: Date,
       required: true,

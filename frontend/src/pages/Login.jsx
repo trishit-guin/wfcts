@@ -47,7 +47,8 @@ export default function Login() {
     <div className="min-h-screen bg-gray-50 px-4 pt-16 pb-8 flex items-start justify-center">
       <div className="w-full max-w-sm bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
         <p className="text-xs font-semibold text-emerald-500 uppercase tracking-widest mb-1">WFCTS</p>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Sign in</h1>
+        <h1 className="text-lg sm:text-xl font-bold text-gray-900">WFCTS - Workload Fairness and Credit Tracking System</h1>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">Sign in</h2>
         <p className="text-xs sm:text-sm text-gray-400 mt-1">Use an existing account to access the app.</p>
 
         <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3.5">

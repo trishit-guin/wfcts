@@ -65,10 +65,10 @@ router.get('/bootstrap', async (req, res, next) => {
 
 router.post('/work-entries', async (req, res, next) => {
   try {
-    const { subject, className, hours, workType, date } = req.body || {}
+    const { subject, className, hours, workType, description, date } = req.body || {}
 
-    if (!subject || !className || !hours || !workType || !date) {
-      const error = new Error('Subject, class, hours, work type, and date are required')
+    if (!subject || !className || !hours || !workType || !description || !date) {
+      const error = new Error('Subject, class, hours, work type, description, and date are required')
       error.statusCode = 400
       throw error
     }
@@ -79,6 +79,7 @@ router.post('/work-entries', async (req, res, next) => {
       className: String(className).trim(),
       hours: Number(hours),
       workType: String(workType).trim(),
+      description: String(description).trim(),
       date: toDate(date, 'date'),
     })
 
