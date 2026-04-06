@@ -19,8 +19,9 @@ function ProofBadge({ uploaded, name }) {
 }
 
 export default function IndustrySessions() {
-  const { industrySessions, addIndustrySession } = useWFCTS()
+  const { industrySessions, addIndustrySession, updateIndustrySession } = useWFCTS()
   const [showForm, setShowForm] = useState(false)
+  const [editingSessionId, setEditingSessionId] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [form, setForm] = useState({
@@ -46,20 +47,46 @@ export default function IndustrySessions() {
     setError('')
 
     try {
-      await addIndustrySession({
+      const payload = {
         title: form.title,
         speaker: form.speaker,
         date: form.date,
         proofName: form.proof,
-      })
+      }
+
+      if (editingSessionId) {
+        await updateIndustrySession(editingSessionId, payload)
+      } else {
+        await addIndustrySession(payload)
+      }
 
       setForm({ title: '', speaker: '', date: '', proof: '' })
+      setEditingSessionId('')
       setShowForm(false)
     } catch (err) {
       setError(err.message || 'Unable to save industry session.')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  function startEdit(session) {
+    setForm({
+      title: session.title || '',
+      speaker: session.speaker || '',
+      date: session.date || '',
+      proof: session.proofName || '',
+    })
+    setEditingSessionId(session.id)
+    setShowForm(true)
+    setError('')
+  }
+
+  function cancelEdit() {
+    setEditingSessionId('')
+    setForm({ title: '', speaker: '', date: '', proof: '' })
+    setError('')
+    setShowForm(false)
   }
 
   return (
@@ -73,10 +100,16 @@ export default function IndustrySessions() {
       <div className="px-5 pt-5">
         <button
           type="button"
-          onClick={() => setShowForm((value) => !value)}
+          onClick={() => {
+            if (editingSessionId) {
+              cancelEdit()
+              return
+            }
+            setShowForm((value) => !value)
+          }}
           className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 transition-colors"
         >
-          {showForm ? 'Close Form' : 'Add Session'}
+          {editingSessionId ? 'Cancel Edit' : showForm ? 'Close Form' : 'Add Session'}
         </button>
       </div>
 
@@ -131,7 +164,7 @@ export default function IndustrySessions() {
               disabled={isSubmitting}
               className="w-full rounded-xl bg-gray-900 hover:bg-gray-800 disabled:opacity-70 text-white text-sm font-semibold py-2.5 transition-colors"
             >
-              {isSubmitting ? 'Saving...' : 'Save Session'}
+              {isSubmitting ? 'Saving...' : editingSessionId ? 'Update Session' : 'Save Session'}
             </button>
           </form>
         </div>
@@ -148,7 +181,16 @@ export default function IndustrySessions() {
             <div key={session.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
               <div className="flex items-start justify-between gap-3">
                 <h3 className="text-sm sm:text-base font-bold text-gray-900">{session.title}</h3>
-                <ProofBadge uploaded={session.proofUploaded} name={session.proofName} />
+                <div className="flex flex-col items-end gap-1.5">
+                  <ProofBadge uploaded={session.proofUploaded} name={session.proofName} />
+                  <button
+                    type="button"
+                    onClick={() => startEdit(session)}
+                    className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md"
+                  >
+                    Edit
+                  </button>
+                </div>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2">

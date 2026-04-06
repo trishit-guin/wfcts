@@ -385,6 +385,85 @@ router.post('/work-entries', async (req, res, next) => {
   }
 })
 
+router.patch('/work-entries/:entryId', async (req, res, next) => {
+  try {
+    const entry = await WorkEntry.findById(req.params.entryId)
+
+    if (!entry) {
+      const error = new Error('Work entry not found')
+      error.statusCode = 404
+      throw error
+    }
+
+    const isOwner = String(entry.teacherId) === String(req.user._id)
+    const isManager = !isTeacher(req.user)
+    if (!isOwner && !isManager) {
+      const error = new Error('You can only update your own work entries')
+      error.statusCode = 403
+      throw error
+    }
+
+    if (req.body?.subject !== undefined) {
+      const value = String(req.body.subject).trim()
+      if (!value) {
+        const error = new Error('Subject cannot be empty')
+        error.statusCode = 400
+        throw error
+      }
+      entry.subject = value
+    }
+
+    if (req.body?.className !== undefined) {
+      const value = String(req.body.className).trim()
+      if (!value) {
+        const error = new Error('Class name cannot be empty')
+        error.statusCode = 400
+        throw error
+      }
+      entry.className = value
+    }
+
+    if (req.body?.hours !== undefined) {
+      const hours = Number(req.body.hours)
+      if (!Number.isFinite(hours) || hours < 0.5) {
+        const error = new Error('hours must be at least 0.5')
+        error.statusCode = 400
+        throw error
+      }
+      entry.hours = hours
+    }
+
+    if (req.body?.workType !== undefined) {
+      const value = String(req.body.workType).trim()
+      if (!value) {
+        const error = new Error('Work type cannot be empty')
+        error.statusCode = 400
+        throw error
+      }
+      entry.workType = value
+    }
+
+    if (req.body?.description !== undefined) {
+      const value = String(req.body.description).trim()
+      if (!value) {
+        const error = new Error('Description cannot be empty')
+        error.statusCode = 400
+        throw error
+      }
+      entry.description = value
+    }
+
+    if (req.body?.date !== undefined) {
+      entry.date = toDate(req.body.date, 'date')
+    }
+
+    await entry.save()
+    res.json({ workEntry: entry.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+})
+
 router.post('/substitute-entries', async (req, res, next) => {
   try {
     const { coveredFor, date, status, direction, counterpartTeacherId } = req.body || {}
@@ -542,6 +621,86 @@ router.post('/tasks', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
   }
 })
 
+router.patch('/tasks/:taskId', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.taskId)
+
+    if (!task) {
+      const error = new Error('Task not found')
+      error.statusCode = 404
+      throw error
+    }
+
+    if (req.body?.title !== undefined) {
+      const value = String(req.body.title).trim()
+      if (!value) {
+        const error = new Error('Title cannot be empty')
+        error.statusCode = 400
+        throw error
+      }
+      task.title = value
+    }
+
+    if (req.body?.description !== undefined) {
+      const value = String(req.body.description).trim()
+      if (!value) {
+        const error = new Error('Description cannot be empty')
+        error.statusCode = 400
+        throw error
+      }
+      task.description = value
+    }
+
+    if (req.body?.deadline !== undefined) {
+      task.deadline = toDate(req.body.deadline, 'deadline')
+    }
+
+    if (req.body?.assignTo !== undefined) {
+      const assignee = await User.findOne({ _id: req.body.assignTo, role: 'TEACHER' })
+      if (!assignee) {
+        const error = new Error('Assigned teacher was not found')
+        error.statusCode = 404
+        throw error
+      }
+      task.assignTo = assignee._id
+    }
+
+    if (req.body?.status !== undefined) {
+      const status = String(req.body.status)
+      if (!['Pending', 'Completed', 'Cancelled'].includes(status)) {
+        const error = new Error('Invalid task status')
+        error.statusCode = 400
+        throw error
+      }
+      task.status = status
+    }
+
+    await task.save()
+    res.json({ task: task.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.patch('/tasks/:taskId/cancel', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.taskId)
+
+    if (!task) {
+      const error = new Error('Task not found')
+      error.statusCode = 404
+      throw error
+    }
+
+    task.status = 'Cancelled'
+    await task.save()
+
+    res.json({ task: task.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+})
+
 router.patch('/tasks/:taskId/complete', async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.taskId)
@@ -590,6 +749,63 @@ router.post('/industry-sessions', async (req, res, next) => {
     })
 
     res.status(201).json({ industrySession: session.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.patch('/industry-sessions/:sessionId', async (req, res, next) => {
+  try {
+    const session = await IndustrySession.findById(req.params.sessionId)
+
+    if (!session) {
+      const error = new Error('Industry session not found')
+      error.statusCode = 404
+      throw error
+    }
+
+    const isOwner = String(session.teacherId) === String(req.user._id)
+    const isManager = !isTeacher(req.user)
+
+    if (!isOwner && !isManager) {
+      const error = new Error('You can only update your own industry sessions')
+      error.statusCode = 403
+      throw error
+    }
+
+    if (req.body?.title !== undefined) {
+      const value = String(req.body.title).trim()
+      if (!value) {
+        const error = new Error('Title cannot be empty')
+        error.statusCode = 400
+        throw error
+      }
+      session.title = value
+    }
+
+    if (req.body?.speaker !== undefined) {
+      const value = String(req.body.speaker).trim()
+      if (!value) {
+        const error = new Error('Speaker cannot be empty')
+        error.statusCode = 400
+        throw error
+      }
+      session.speaker = value
+    }
+
+    if (req.body?.date !== undefined) {
+      session.date = toDate(req.body.date, 'date')
+    }
+
+    if (req.body?.proofName !== undefined) {
+      const value = String(req.body.proofName).trim()
+      session.proofName = value
+      session.proofUploaded = Boolean(value)
+    }
+
+    await session.save()
+
+    res.json({ industrySession: session.toJSON() })
   } catch (error) {
     next(error)
   }

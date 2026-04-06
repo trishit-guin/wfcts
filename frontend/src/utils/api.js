@@ -53,6 +53,14 @@ export function getCurrentUserRequest(token) {
   return apiRequest('/auth/me', { token })
 }
 
+export function updateCurrentUserRequest(token, payload) {
+  return apiRequest('/auth/me', {
+    method: 'PATCH',
+    token,
+    body: payload,
+  })
+}
+
 export function getBootstrapRequest(token) {
   return apiRequest('/data/bootstrap', { token })
 }
@@ -60,6 +68,14 @@ export function getBootstrapRequest(token) {
 export function createWorkEntryRequest(token, payload) {
   return apiRequest('/data/work-entries', {
     method: 'POST',
+    token,
+    body: payload,
+  })
+}
+
+export function updateWorkEntryRequest(token, entryId, payload) {
+  return apiRequest(`/data/work-entries/${entryId}`, {
+    method: 'PATCH',
     token,
     body: payload,
   })
@@ -132,6 +148,21 @@ export function createTaskRequest(token, payload) {
   })
 }
 
+export function updateTaskRequest(token, taskId, payload) {
+  return apiRequest(`/data/tasks/${taskId}`, {
+    method: 'PATCH',
+    token,
+    body: payload,
+  })
+}
+
+export function cancelTaskRequest(token, taskId) {
+  return apiRequest(`/data/tasks/${taskId}/cancel`, {
+    method: 'PATCH',
+    token,
+  })
+}
+
 export function markTaskCompleteRequest(token, taskId) {
   return apiRequest(`/data/tasks/${taskId}/complete`, {
     method: 'PATCH',
@@ -142,6 +173,14 @@ export function markTaskCompleteRequest(token, taskId) {
 export function createIndustrySessionRequest(token, payload) {
   return apiRequest('/data/industry-sessions', {
     method: 'POST',
+    token,
+    body: payload,
+  })
+}
+
+export function updateIndustrySessionRequest(token, sessionId, payload) {
+  return apiRequest(`/data/industry-sessions/${sessionId}`, {
+    method: 'PATCH',
     token,
     body: payload,
   })

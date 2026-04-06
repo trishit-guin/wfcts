@@ -32,8 +32,9 @@ function Toast({ message }) {
 }
 
 export default function WorkEntry() {
-  const { addWorkEntry, workEntries, isLoading } = useWFCTS()
+  const { addWorkEntry, updateWorkEntry, workEntries, isLoading } = useWFCTS()
   const [form, setForm] = useState(initialForm)
+  const [editingEntryId, setEditingEntryId] = useState('')
   const [toast, setToast] = useState(false)
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
@@ -67,19 +68,47 @@ export default function WorkEntry() {
     setSubmitError('')
 
     try {
-      await addWorkEntry({
+      const payload = {
         ...form,
         hours: Number(form.hours),
         date: new Date().toISOString().split('T')[0],
-      })
+      }
+
+      if (editingEntryId) {
+        await updateWorkEntry(editingEntryId, payload)
+      } else {
+        await addWorkEntry(payload)
+      }
+
       setToast(true)
       setForm(initialForm)
+      setEditingEntryId('')
       setTimeout(() => setToast(false), 3000)
     } catch (err) {
       setSubmitError(err.message || 'Unable to save work entry.')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  function startEdit(entry) {
+    setForm({
+      subject: entry.subject || '',
+      className: entry.className || '',
+      hours: String(entry.hours || ''),
+      workType: entry.workType || '',
+      description: entry.description || '',
+    })
+    setEditingEntryId(entry.id)
+    setErrors({})
+    setSubmitError('')
+  }
+
+  function cancelEdit() {
+    setEditingEntryId('')
+    setForm(initialForm)
+    setErrors({})
+    setSubmitError('')
   }
 
   return (
@@ -202,8 +231,18 @@ export default function WorkEntry() {
           disabled={isSubmitting}
           className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-70 text-white font-semibold rounded-2xl py-4 text-base shadow-lg shadow-emerald-200 transition-all duration-150 mb-2"
         >
-          {isSubmitting ? 'Submitting...' : 'Submit Entry'}
+          {isSubmitting ? 'Submitting...' : editingEntryId ? 'Update Entry' : 'Submit Entry'}
         </button>
+
+        {editingEntryId && (
+          <button
+            type="button"
+            onClick={cancelEdit}
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-2xl py-3 text-sm transition-all duration-150"
+          >
+            Cancel Edit
+          </button>
+        )}
       </form>
 
       <div className="px-5 pt-2 pb-4">
@@ -229,7 +268,16 @@ export default function WorkEntry() {
                   <p className="text-xs text-gray-400">{entry.className} | {entry.workType} | {formatDate(entry.date)}</p>
                   {entry.description && <p className="text-xs text-gray-500 mt-1">{entry.description}</p>}
                 </div>
-                <span className="text-sm font-bold text-emerald-600 shrink-0">{entry.hours}h</span>
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <span className="text-sm font-bold text-emerald-600">{entry.hours}h</span>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(entry)}
+                    className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md"
+                  >
+                    Edit
+                  </button>
+                </div>
               </div>
             ))}
           </div>

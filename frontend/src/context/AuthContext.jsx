@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { getCurrentUserRequest, loginRequest, signupRequest } from '../utils/api'
+import { getCurrentUserRequest, loginRequest, signupRequest, updateCurrentUserRequest } from '../utils/api'
 
 const AuthContext = createContext(null)
 
@@ -103,9 +103,20 @@ export function AuthProvider({ children }) {
     setAuthReady(true)
   }, [])
 
+  const updateProfile = useCallback(async (payload) => {
+    if (!token) {
+      throw new Error('You are not logged in')
+    }
+
+    const response = await updateCurrentUserRequest(token, payload)
+    persistSession(response.user, token)
+    setUser(response.user)
+    return response.user
+  }, [token])
+
   const value = useMemo(
-    () => ({ user, token, isAuthenticated, authReady, login, signup, logout }),
-    [user, token, isAuthenticated, authReady, login, signup, logout],
+    () => ({ user, token, isAuthenticated, authReady, login, signup, logout, updateProfile }),
+    [user, token, isAuthenticated, authReady, login, signup, logout, updateProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

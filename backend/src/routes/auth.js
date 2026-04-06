@@ -86,4 +86,60 @@ router.get('/me', requireAuth, async (req, res) => {
   res.json({ user: req.user.toJSON() })
 })
 
+router.patch('/me', requireAuth, async (req, res, next) => {
+  try {
+    const name = req.body?.name
+    const department = req.body?.department
+    const currentPassword = String(req.body?.currentPassword || '')
+    const newPassword = String(req.body?.newPassword || '')
+
+    if (name !== undefined) {
+      const normalizedName = String(name).trim()
+      if (!normalizedName) {
+        const error = new Error('Name cannot be empty')
+        error.statusCode = 400
+        throw error
+      }
+      req.user.name = normalizedName
+    }
+
+    if (department !== undefined) {
+      const normalizedDepartment = String(department).trim()
+      if (!normalizedDepartment) {
+        const error = new Error('Department cannot be empty')
+        error.statusCode = 400
+        throw error
+      }
+      req.user.department = normalizedDepartment
+    }
+
+    if (newPassword) {
+      if (!currentPassword) {
+        const error = new Error('Current password is required to set a new password')
+        error.statusCode = 400
+        throw error
+      }
+
+      if (!verifyPassword(currentPassword, req.user.passwordHash)) {
+        const error = new Error('Current password is incorrect')
+        error.statusCode = 401
+        throw error
+      }
+
+      if (newPassword.length < 6) {
+        const error = new Error('New password must be at least 6 characters long')
+        error.statusCode = 400
+        throw error
+      }
+
+      req.user.passwordHash = hashPassword(newPassword)
+    }
+
+    await req.user.save()
+    res.json({ user: req.user.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+})
+
 module.exports = router

@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import {
+  cancelTaskRequest,
   createTimetableSlotRequest,
   createIndustrySessionRequest,
   createSubstituteEntryRequest,
@@ -12,7 +13,10 @@ import {
   getSubstituteSettlementsRequest,
   getTimetableSlotsRequest,
   markTaskCompleteRequest,
+  updateIndustrySessionRequest,
+  updateTaskRequest,
   updateTimetableSlotRequest,
+  updateWorkEntryRequest,
 } from '../utils/api'
 import { useAuth } from './AuthContext'
 
@@ -127,9 +131,21 @@ export function WFCTSProvider({ children }) {
     return response.workEntry
   }, [token])
 
+  const updateWorkEntry = useCallback(async (entryId, updates) => {
+    const response = await updateWorkEntryRequest(token, entryId, updates)
+    setWorkEntries((prev) => prev.map((entry) => (entry.id === entryId ? response.workEntry : entry)))
+    return response.workEntry
+  }, [token])
+
   const addTask = useCallback(async (task) => {
     const response = await createTaskRequest(token, task)
     setTasks((prev) => [response.task, ...prev])
+    return response.task
+  }, [token])
+
+  const updateTask = useCallback(async (taskId, updates) => {
+    const response = await updateTaskRequest(token, taskId, updates)
+    setTasks((prev) => prev.map((task) => (task.id === taskId ? response.task : task)))
     return response.task
   }, [token])
 
@@ -139,9 +155,23 @@ export function WFCTSProvider({ children }) {
     return response.task
   }, [token])
 
+  const cancelTask = useCallback(async (taskId) => {
+    const response = await cancelTaskRequest(token, taskId)
+    setTasks((prev) => prev.map((task) => (task.id === taskId ? response.task : task)))
+    return response.task
+  }, [token])
+
   const addIndustrySession = useCallback(async (session) => {
     const response = await createIndustrySessionRequest(token, session)
     setIndustrySessions((prev) => [response.industrySession, ...prev])
+    return response.industrySession
+  }, [token])
+
+  const updateIndustrySession = useCallback(async (sessionId, updates) => {
+    const response = await updateIndustrySessionRequest(token, sessionId, updates)
+    setIndustrySessions((prev) => prev.map((session) => (
+      session.id === sessionId ? response.industrySession : session
+    )))
     return response.industrySession
   }, [token])
 
@@ -193,9 +223,13 @@ export function WFCTSProvider({ children }) {
         error,
         addSubstituteEntry,
         addWorkEntry,
+        updateWorkEntry,
         addTask,
+        updateTask,
         markTaskComplete,
+        cancelTask,
         addIndustrySession,
+        updateIndustrySession,
         addTimetableSlot,
         updateTimetableSlot,
         deleteTimetableSlot,

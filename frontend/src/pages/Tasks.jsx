@@ -4,9 +4,9 @@ import { useWFCTS } from '../context/WFCTSContext'
 import { formatDate } from '../utils/formatDate'
 
 function statusClasses(status) {
-  return status === 'Completed'
-    ? 'bg-emerald-100 text-emerald-700'
-    : 'bg-amber-100 text-amber-700'
+  if (status === 'Completed') return 'bg-emerald-100 text-emerald-700'
+  if (status === 'Cancelled') return 'bg-gray-200 text-gray-700'
+  return 'bg-amber-100 text-amber-700'
 }
 
 export default function Tasks() {

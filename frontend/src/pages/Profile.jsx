@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
 
@@ -12,8 +12,57 @@ function StatCard({ label, value, accent }) {
 }
 
 export default function Profile() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateProfile } = useAuth()
   const { workEntries, substituteEntries, tasks, industrySessions } = useWFCTS()
+  const [showEdit, setShowEdit] = useState(false)
+  const [form, setForm] = useState({
+    name: user?.name || '',
+    department: user?.department || '',
+    currentPassword: '',
+    newPassword: '',
+  })
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  function onChange(field, value) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+    if (error) setError('')
+    if (message) setMessage('')
+  }
+
+  async function onSubmit(event) {
+    event.preventDefault()
+    setError('')
+    setMessage('')
+
+    if (!form.name.trim() || !form.department.trim()) {
+      setError('Name and department are required.')
+      return
+    }
+
+    if (form.newPassword && !form.currentPassword) {
+      setError('Current password is required to set a new password.')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await updateProfile({
+        name: form.name.trim(),
+        department: form.department.trim(),
+        currentPassword: form.currentPassword,
+        newPassword: form.newPassword,
+      })
+      setForm((prev) => ({ ...prev, currentPassword: '', newPassword: '' }))
+      setShowEdit(false)
+      setMessage('Profile updated successfully.')
+    } catch (submitError) {
+      setError(submitError.message || 'Unable to update profile.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const summary = useMemo(() => {
     const userLectures = workEntries.filter(
@@ -62,6 +111,67 @@ export default function Profile() {
               <p className="text-xs sm:text-sm font-semibold text-gray-700 mt-0.5 break-all">{user?.email || 'N/A'}</p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowEdit((prev) => !prev)
+              setForm({
+                name: user?.name || '',
+                department: user?.department || '',
+                currentPassword: '',
+                newPassword: '',
+              })
+              setError('')
+            }}
+            className="mt-3 w-full rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-semibold py-2.5"
+          >
+            {showEdit ? 'Close Edit' : 'Edit Profile'}
+          </button>
+
+          {showEdit && (
+            <form onSubmit={onSubmit} className="mt-3 border border-gray-100 rounded-xl p-3 space-y-2.5">
+              <input
+                type="text"
+                value={form.name}
+                onChange={(event) => onChange('name', event.target.value)}
+                placeholder="Full name"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              />
+              <input
+                type="text"
+                value={form.department}
+                onChange={(event) => onChange('department', event.target.value)}
+                placeholder="Department"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              />
+              <input
+                type="password"
+                value={form.currentPassword}
+                onChange={(event) => onChange('currentPassword', event.target.value)}
+                placeholder="Current password (required only to change password)"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              />
+              <input
+                type="password"
+                value={form.newPassword}
+                onChange={(event) => onChange('newPassword', event.target.value)}
+                placeholder="New password (optional)"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              />
+
+              {message && <p className="text-xs text-emerald-600">{message}</p>}
+              {error && <p className="text-xs text-red-500">{error}</p>}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white text-sm font-semibold py-2"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </button>
+            </form>
+          )}
         </div>
       </div>
 
