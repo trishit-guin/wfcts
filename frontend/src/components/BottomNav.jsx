@@ -54,6 +54,15 @@ const teacherNavItems = [
       </svg>
     ),
   },
+  {
+    to: '/timetable',
+    label: 'Slots',
+    icon: (active) => (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
 ]
 
 const adminNavItems = [
@@ -76,6 +85,15 @@ const adminNavItems = [
       </svg>
     ),
   },
+  {
+    to: '/timetable',
+    label: 'Slots',
+    icon: (active) => (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
 ]
 const hodNavItems = [
   { to: '/hod/dashboard', label: 'Dashboard', icon: dashIcon },
@@ -94,6 +112,15 @@ const hodNavItems = [
     icon: (active) => (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M7 7v10m10-10v10M5 17h14M9 11h6" />
+      </svg>
+    ),
+  },
+  {
+    to: '/timetable',
+    label: 'Slots',
+    icon: (active) => (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
     ),
   },

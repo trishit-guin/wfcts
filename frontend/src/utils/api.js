@@ -73,6 +73,53 @@ export function createSubstituteEntryRequest(token, payload) {
   })
 }
 
+export function getTimetableSlotsRequest(token, filters = {}) {
+  const params = new URLSearchParams()
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      params.set(key, String(value))
+    }
+  })
+
+  const suffix = params.toString() ? `?${params.toString()}` : ''
+  return apiRequest(`/data/timetable-slots${suffix}`, { token })
+}
+
+export function createTimetableSlotRequest(token, payload) {
+  return apiRequest('/data/timetable-slots', {
+    method: 'POST',
+    token,
+    body: payload,
+  })
+}
+
+export function updateTimetableSlotRequest(token, slotId, payload) {
+  return apiRequest(`/data/timetable-slots/${slotId}`, {
+    method: 'PATCH',
+    token,
+    body: payload,
+  })
+}
+
+export function deleteTimetableSlotRequest(token, slotId) {
+  return apiRequest(`/data/timetable-slots/${slotId}`, {
+    method: 'DELETE',
+    token,
+  })
+}
+
+export function getAvailableTeachersRequest(token, query) {
+  const params = new URLSearchParams()
+  Object.entries(query || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      params.set(key, String(value))
+    }
+  })
+
+  return apiRequest(`/data/available-teachers?${params.toString()}`, { token })
+}
+
 export function getSubstituteSettlementsRequest(token) {
   return apiRequest('/data/substitute-settlements', { token })
 }

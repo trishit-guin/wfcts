@@ -16,6 +16,7 @@ import AssignTask from './pages/AssignTask'
 import IndustrySessions from './pages/IndustrySessions'
 import WorkloadFairnessDashboard from './pages/WorkloadFairnessDashboard'
 import SubjectHours from './pages/SubjectHours'
+import Timetable from './pages/Timetable'
 
 function RoleHomeRedirect() {
   const { user } = useAuth()
@@ -95,6 +96,16 @@ function App() {
               <ProtectedRoute roles={['TEACHER', 'ADMIN', 'HOD']}>
                 <Layout>
                   <SubjectHours />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/timetable"
+            element={
+              <ProtectedRoute roles={['TEACHER', 'ADMIN', 'HOD']}>
+                <Layout>
+                  <Timetable />
                 </Layout>
               </ProtectedRoute>
             }

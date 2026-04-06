@@ -219,6 +219,63 @@ const seedSubstituteEntries = [
   },
 ]
 
+const seedTimetableSlots = [
+  {
+    teacherEmail: 'teacher@wfcts.edu',
+    dayOfWeek: 1,
+    startTime: '09:00',
+    endTime: '10:00',
+    subject: 'Data Structures',
+    className: 'FY-A',
+    location: 'Room CS-101',
+  },
+  {
+    teacherEmail: 'teacher@wfcts.edu',
+    dayOfWeek: 1,
+    startTime: '11:00',
+    endTime: '12:00',
+    subject: 'Algorithms',
+    className: 'SY-B',
+    location: 'Lab CS-2',
+  },
+  {
+    teacherEmail: 'neha@wfcts.edu',
+    dayOfWeek: 1,
+    startTime: '10:00',
+    endTime: '11:00',
+    subject: 'Computer Networks',
+    className: 'SY-A',
+    location: 'Room CS-201',
+  },
+  {
+    teacherEmail: 'neha@wfcts.edu',
+    dayOfWeek: 2,
+    startTime: '09:00',
+    endTime: '10:00',
+    subject: 'Software Engineering',
+    className: 'TY-A',
+    location: 'Room CS-204',
+  },
+  {
+    teacherEmail: 'arjun@wfcts.edu',
+    dayOfWeek: 1,
+    startTime: '09:00',
+    endTime: '10:00',
+    subject: 'Physics',
+    className: 'FY-B',
+    location: 'Room PHY-01',
+  },
+  {
+    teacherEmail: 'arjun@wfcts.edu',
+    dayOfWeek: 3,
+    startTime: '10:00',
+    endTime: '11:00',
+    subject: 'Mathematics II',
+    className: 'FY-A',
+    location: 'Room MATH-11',
+  },
+]
+
 const seedTasks = [
   {
     title: 'Prepare AI Lab Plan',
@@ -285,6 +342,7 @@ module.exports = {
   seedUsers,
   seedWorkEntries,
   seedSubstituteEntries,
+  seedTimetableSlots,
   seedTasks,
   seedIndustrySessions,
 }

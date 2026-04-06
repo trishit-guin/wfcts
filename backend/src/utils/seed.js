@@ -1,6 +1,7 @@
 const IndustrySession = require('../models/IndustrySession')
 const SubstituteEntry = require('../models/SubstituteEntry')
 const Task = require('../models/Task')
+const TeacherTimetable = require('../models/TeacherTimetable')
 const User = require('../models/User')
 const WorkEntry = require('../models/WorkEntry')
 const { hashPassword } = require('./password')
@@ -8,6 +9,7 @@ const {
   seedUsers,
   seedWorkEntries,
   seedSubstituteEntries,
+  seedTimetableSlots,
   seedTasks,
   seedIndustrySessions,
 } = require('../constants/seedData')
@@ -58,6 +60,18 @@ async function seedDatabase() {
       status: entry.status,
       direction: entry.direction,
       pairingKey: entry.pairingKey || '',
+    })),
+  )
+
+  await TeacherTimetable.insertMany(
+    seedTimetableSlots.map((slot) => ({
+      teacherId: usersByEmail.get(slot.teacherEmail)._id,
+      dayOfWeek: slot.dayOfWeek,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      subject: slot.subject || '',
+      className: slot.className || '',
+      location: slot.location || '',
     })),
   )
 

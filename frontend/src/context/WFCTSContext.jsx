@@ -1,13 +1,18 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import {
+  createTimetableSlotRequest,
   createIndustrySessionRequest,
   createSubstituteEntryRequest,
   createTaskRequest,
   createWorkEntryRequest,
+  deleteTimetableSlotRequest,
+  getAvailableTeachersRequest,
   getBootstrapRequest,
   getSubstituteSettlementsRequest,
+  getTimetableSlotsRequest,
   markTaskCompleteRequest,
+  updateTimetableSlotRequest,
 } from '../utils/api'
 import { useAuth } from './AuthContext'
 
@@ -19,6 +24,8 @@ const initialState = {
   tasks: [],
   teacherDirectory: [],
   industrySessions: [],
+  timetableSlots: [],
+  availableTeachers: [],
   settlementPlan: {
     generatedAt: '',
     totalPendingLinkedCredits: 0,
@@ -35,6 +42,8 @@ export function WFCTSProvider({ children }) {
   const [tasks, setTasks] = useState(initialState.tasks)
   const [teacherDirectory, setTeacherDirectory] = useState(initialState.teacherDirectory)
   const [industrySessions, setIndustrySessions] = useState(initialState.industrySessions)
+  const [timetableSlots, setTimetableSlots] = useState(initialState.timetableSlots)
+  const [availableTeachers, setAvailableTeachers] = useState(initialState.availableTeachers)
   const [settlementPlan, setSettlementPlan] = useState(initialState.settlementPlan)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -45,6 +54,8 @@ export function WFCTSProvider({ children }) {
     setTasks(initialState.tasks)
     setTeacherDirectory(initialState.teacherDirectory)
     setIndustrySessions(initialState.industrySessions)
+    setTimetableSlots(initialState.timetableSlots)
+    setAvailableTeachers(initialState.availableTeachers)
     setSettlementPlan(initialState.settlementPlan)
   }, [])
 
@@ -87,6 +98,7 @@ export function WFCTSProvider({ children }) {
       setTasks(data.tasks || [])
       setTeacherDirectory(data.teacherDirectory || [])
       setIndustrySessions(data.industrySessions || [])
+      setTimetableSlots(data.timetableSlots || [])
       await refreshSettlementPlan()
     } catch (err) {
       setError(err.message || 'Unable to load application data.')
@@ -133,6 +145,39 @@ export function WFCTSProvider({ children }) {
     return response.industrySession
   }, [token])
 
+  const refreshTimetableSlots = useCallback(async (filters = {}) => {
+    const response = await getTimetableSlotsRequest(token, filters)
+    setTimetableSlots(response.timetableSlots || [])
+    return response.timetableSlots || []
+  }, [token])
+
+  const addTimetableSlot = useCallback(async (slot) => {
+    const response = await createTimetableSlotRequest(token, slot)
+    setTimetableSlots((prev) => {
+      const next = [response.timetableSlot, ...prev]
+      return next.sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime))
+    })
+    return response.timetableSlot
+  }, [token])
+
+  const updateTimetableSlot = useCallback(async (slotId, updates) => {
+    const response = await updateTimetableSlotRequest(token, slotId, updates)
+    setTimetableSlots((prev) => prev.map((slot) => (slot.id === slotId ? response.timetableSlot : slot)))
+    return response.timetableSlot
+  }, [token])
+
+  const deleteTimetableSlot = useCallback(async (slotId) => {
+    await deleteTimetableSlotRequest(token, slotId)
+    setTimetableSlots((prev) => prev.filter((slot) => slot.id !== slotId))
+    return true
+  }, [token])
+
+  const fetchAvailableTeachers = useCallback(async (query) => {
+    const response = await getAvailableTeachersRequest(token, query)
+    setAvailableTeachers(response.availableTeachers || [])
+    return response.availableTeachers || []
+  }, [token])
+
   return (
     <WFCTSContext.Provider
       value={{
@@ -141,6 +186,8 @@ export function WFCTSProvider({ children }) {
         tasks,
         teacherDirectory,
         industrySessions,
+        timetableSlots,
+        availableTeachers,
         settlementPlan,
         isLoading,
         error,
@@ -149,6 +196,11 @@ export function WFCTSProvider({ children }) {
         addTask,
         markTaskComplete,
         addIndustrySession,
+        addTimetableSlot,
+        updateTimetableSlot,
+        deleteTimetableSlot,
+        refreshTimetableSlots,
+        fetchAvailableTeachers,
         refreshData,
         refreshSettlementPlan,
       }}

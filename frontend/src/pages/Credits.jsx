@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
 import { formatDate } from '../utils/formatDate'
@@ -8,8 +8,10 @@ export default function Credits() {
   const {
     substituteEntries,
     teacherDirectory,
+    availableTeachers,
     settlementPlan,
     addSubstituteEntry,
+    fetchAvailableTeachers,
     refreshSettlementPlan,
   } = useWFCTS()
   const [form, setForm] = useState({
@@ -17,9 +19,17 @@ export default function Credits() {
     direction: 'CREDIT',
     status: 'Pending',
     date: new Date().toISOString().slice(0, 10),
+    startTime: '09:00',
+    endTime: '10:00',
   })
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  function dayOfWeekFromDate(dateText) {
+    const date = new Date(dateText)
+    if (Number.isNaN(date.getTime())) return null
+    return date.getDay()
+  }
 
   const creditsGiven = substituteEntries.filter((e) => (e.direction || 'CREDIT') === 'CREDIT')
   const substitutionsReceived = substituteEntries.filter((e) => (e.direction || 'CREDIT') === 'SUBSTITUTION')
@@ -90,6 +100,8 @@ export default function Credits() {
         direction: 'CREDIT',
         status: 'Pending',
         date: new Date().toISOString().slice(0, 10),
+        startTime: '09:00',
+        endTime: '10:00',
       })
       await refreshSettlementPlan()
     } catch (error) {
@@ -98,6 +110,20 @@ export default function Credits() {
       setIsSubmitting(false)
     }
   }
+
+  useEffect(() => {
+    const dayOfWeek = dayOfWeekFromDate(form.date)
+    if (dayOfWeek === null || !form.startTime || !form.endTime) return
+
+    fetchAvailableTeachers({
+      dayOfWeek,
+      startTime: form.startTime,
+      endTime: form.endTime,
+      excludeTeacherId: user?.id,
+    }).catch(() => {
+      // Keep the form responsive even if suggestions fail.
+    })
+  }, [form.date, form.startTime, form.endTime, fetchAvailableTeachers, user?.id])
 
   return (
     <div className="flex flex-col min-h-full">
@@ -184,6 +210,44 @@ export default function Credits() {
               onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
               className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
             />
+
+            <input
+              type="time"
+              value={form.startTime}
+              onChange={(event) => setForm((prev) => ({ ...prev, startTime: event.target.value }))}
+              className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
+
+            <input
+              type="time"
+              value={form.endTime}
+              onChange={(event) => setForm((prev) => ({ ...prev, endTime: event.target.value }))}
+              className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
+          </div>
+
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3">
+            <p className="text-[11px] font-semibold text-indigo-700 uppercase tracking-wide">Available Teachers For Selected Timing</p>
+            {availableTeachers.length === 0 ? (
+              <p className="text-xs text-gray-500 mt-1">No free teachers found for this slot.</p>
+            ) : (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {availableTeachers.map((teacher) => (
+                  <button
+                    key={teacher.id}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, counterpartTeacherId: teacher.id }))}
+                    className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border ${
+                      form.counterpartTeacherId === teacher.id
+                        ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
+                        : 'bg-white border-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {teacher.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {formError && <p className="text-xs text-red-500">{formError}</p>}
