@@ -33,7 +33,7 @@ export default function WorkloadFairnessDashboard() {
       ).length
 
       const substitutions = substituteEntries.filter(
-        (entry) => (entry.teacherId || 'u1') === teacher.id,
+        (entry) => (entry.teacherId || 'u1') === teacher.id && (entry.direction || 'CREDIT') === 'CREDIT',
       ).length
 
       const completedTasks = tasks.filter(

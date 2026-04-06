@@ -43,6 +43,7 @@ const seedWorkEntries = [
     className: 'FY-A',
     hours: 3,
     workType: 'Lecture',
+    description: 'Covered linked lists and stack ADT fundamentals.',
     date: '2026-02-27',
   },
   {
@@ -51,6 +52,7 @@ const seedWorkEntries = [
     className: 'SY-B',
     hours: 2,
     workType: 'Lab',
+    description: 'Conducted sorting complexity analysis lab exercises.',
     date: '2026-02-25',
   },
   {
@@ -59,6 +61,7 @@ const seedWorkEntries = [
     className: 'TY-A',
     hours: 3,
     workType: 'Lecture',
+    description: 'Explained process scheduling and context switching.',
     date: '2026-02-20',
   },
   {
@@ -67,6 +70,7 @@ const seedWorkEntries = [
     className: 'TY-B',
     hours: 4,
     workType: 'Lecture',
+    description: 'Introduced supervised learning and model validation.',
     date: '2026-02-18',
   },
   {
@@ -75,6 +79,7 @@ const seedWorkEntries = [
     className: 'SY-A',
     hours: 2,
     workType: 'Admin',
+    description: 'Updated syllabus mapping and internal assessment plan.',
     date: '2026-02-15',
   },
   {
@@ -83,6 +88,7 @@ const seedWorkEntries = [
     className: 'SY-A',
     hours: 3,
     workType: 'Lecture',
+    description: 'Taught network layers and packet switching concepts.',
     date: '2026-03-08',
   },
   {
@@ -91,6 +97,7 @@ const seedWorkEntries = [
     className: 'TY-A',
     hours: 2,
     workType: 'Lecture',
+    description: 'Reviewed SDLC models and requirement traceability.',
     date: '2026-03-06',
   },
   {
@@ -99,6 +106,7 @@ const seedWorkEntries = [
     className: 'SY-B',
     hours: 2,
     workType: 'Lab',
+    description: 'Ran SQL joins and indexing optimization practical.',
     date: '2026-03-04',
   },
   {
@@ -107,6 +115,7 @@ const seedWorkEntries = [
     className: 'FY-B',
     hours: 2,
     workType: 'Lecture',
+    description: 'Covered wave optics and interference patterns.',
     date: '2026-03-09',
   },
   {
@@ -115,6 +124,7 @@ const seedWorkEntries = [
     className: 'FY-A',
     hours: 3,
     workType: 'Lecture',
+    description: 'Solved differential equations with boundary conditions.',
     date: '2026-03-02',
   },
 ]
@@ -182,6 +192,30 @@ const seedSubstituteEntries = [
     date: '2026-03-05',
     status: 'Repaid',
     direction: 'SUBSTITUTION',
+  },
+  {
+    teacherEmail: 'teacher@wfcts.edu',
+    counterpartTeacherEmail: 'neha@wfcts.edu',
+    coveredFor: 'Prof. Neha Joshi',
+    date: '2026-03-10',
+    status: 'Pending',
+    direction: 'CREDIT',
+  },
+  {
+    teacherEmail: 'neha@wfcts.edu',
+    counterpartTeacherEmail: 'arjun@wfcts.edu',
+    coveredFor: 'Prof. Arjun Mehta',
+    date: '2026-03-11',
+    status: 'Pending',
+    direction: 'CREDIT',
+  },
+  {
+    teacherEmail: 'arjun@wfcts.edu',
+    counterpartTeacherEmail: 'teacher@wfcts.edu',
+    coveredFor: 'Prof. Ananya Sharma',
+    date: '2026-03-12',
+    status: 'Pending',
+    direction: 'CREDIT',
   },
 ]
 

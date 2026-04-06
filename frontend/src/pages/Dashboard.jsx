@@ -75,7 +75,9 @@ export default function Dashboard() {
   )
 
   const teacherCredits = useMemo(
-    () => substituteEntries.filter((entry) => entry.teacherId === user?.id),
+    () => substituteEntries.filter(
+      (entry) => entry.teacherId === user?.id && (entry.direction || 'CREDIT') === 'CREDIT',
+    ),
     [substituteEntries, user?.id],
   )
 

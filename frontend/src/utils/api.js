@@ -73,6 +73,10 @@ export function createSubstituteEntryRequest(token, payload) {
   })
 }
 
+export function getSubstituteSettlementsRequest(token) {
+  return apiRequest('/data/substitute-settlements', { token })
+}
+
 export function createTaskRequest(token, payload) {
   return apiRequest('/data/tasks', {
     method: 'POST',

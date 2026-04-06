@@ -6,6 +6,7 @@ import {
   createTaskRequest,
   createWorkEntryRequest,
   getBootstrapRequest,
+  getSubstituteSettlementsRequest,
   markTaskCompleteRequest,
 } from '../utils/api'
 import { useAuth } from './AuthContext'
@@ -18,6 +19,13 @@ const initialState = {
   tasks: [],
   teacherDirectory: [],
   industrySessions: [],
+  settlementPlan: {
+    generatedAt: '',
+    totalPendingLinkedCredits: 0,
+    unsettledTeachers: 0,
+    balances: [],
+    settlements: [],
+  },
 }
 
 export function WFCTSProvider({ children }) {
@@ -27,6 +35,7 @@ export function WFCTSProvider({ children }) {
   const [tasks, setTasks] = useState(initialState.tasks)
   const [teacherDirectory, setTeacherDirectory] = useState(initialState.teacherDirectory)
   const [industrySessions, setIndustrySessions] = useState(initialState.industrySessions)
+  const [settlementPlan, setSettlementPlan] = useState(initialState.settlementPlan)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -36,7 +45,27 @@ export function WFCTSProvider({ children }) {
     setTasks(initialState.tasks)
     setTeacherDirectory(initialState.teacherDirectory)
     setIndustrySessions(initialState.industrySessions)
+    setSettlementPlan(initialState.settlementPlan)
   }, [])
+
+  const refreshSettlementPlan = useCallback(async () => {
+    if (!token) return initialState.settlementPlan
+
+    try {
+      const data = await getSubstituteSettlementsRequest(token)
+      const nextPlan = {
+        generatedAt: data.generatedAt || '',
+        totalPendingLinkedCredits: data.totalPendingLinkedCredits || 0,
+        unsettledTeachers: data.unsettledTeachers || 0,
+        balances: data.balances || [],
+        settlements: data.settlements || [],
+      }
+      setSettlementPlan(nextPlan)
+      return nextPlan
+    } catch {
+      return initialState.settlementPlan
+    }
+  }, [token])
 
   const refreshData = useCallback(async () => {
     if (!authReady) return
@@ -58,6 +87,7 @@ export function WFCTSProvider({ children }) {
       setTasks(data.tasks || [])
       setTeacherDirectory(data.teacherDirectory || [])
       setIndustrySessions(data.industrySessions || [])
+      await refreshSettlementPlan()
     } catch (err) {
       setError(err.message || 'Unable to load application data.')
       if (err.status === 401) {
@@ -66,7 +96,7 @@ export function WFCTSProvider({ children }) {
     } finally {
       setIsLoading(false)
     }
-  }, [authReady, isAuthenticated, token, resetData, logout])
+  }, [authReady, isAuthenticated, token, resetData, logout, refreshSettlementPlan])
 
   useEffect(() => {
     refreshData()
@@ -75,8 +105,9 @@ export function WFCTSProvider({ children }) {
   const addSubstituteEntry = useCallback(async (entry) => {
     const response = await createSubstituteEntryRequest(token, entry)
     setSubstituteEntries((prev) => [response.substituteEntry, ...prev])
+    await refreshSettlementPlan()
     return response.substituteEntry
-  }, [token])
+  }, [token, refreshSettlementPlan])
 
   const addWorkEntry = useCallback(async (entry) => {
     const response = await createWorkEntryRequest(token, entry)
@@ -110,6 +141,7 @@ export function WFCTSProvider({ children }) {
         tasks,
         teacherDirectory,
         industrySessions,
+        settlementPlan,
         isLoading,
         error,
         addSubstituteEntry,
@@ -118,6 +150,7 @@ export function WFCTSProvider({ children }) {
         markTaskComplete,
         addIndustrySession,
         refreshData,
+        refreshSettlementPlan,
       }}
     >
       {children}

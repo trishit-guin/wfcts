@@ -1,8 +1,25 @@
+import { useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
 import { formatDate } from '../utils/formatDate'
 
 export default function Credits() {
-  const { substituteEntries } = useWFCTS()
+  const { user } = useAuth()
+  const {
+    substituteEntries,
+    teacherDirectory,
+    settlementPlan,
+    addSubstituteEntry,
+    refreshSettlementPlan,
+  } = useWFCTS()
+  const [form, setForm] = useState({
+    counterpartTeacherId: '',
+    direction: 'CREDIT',
+    status: 'Pending',
+    date: new Date().toISOString().slice(0, 10),
+  })
+  const [formError, setFormError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const creditsGiven = substituteEntries.filter((e) => (e.direction || 'CREDIT') === 'CREDIT')
   const substitutionsReceived = substituteEntries.filter((e) => (e.direction || 'CREDIT') === 'SUBSTITUTION')
@@ -10,6 +27,77 @@ export default function Credits() {
   const pendingCredits = creditsGiven.filter((e) => e.status === 'Pending').length
   const pendingSubstitutions = substitutionsReceived.filter((e) => e.status === 'Pending').length
   const netBalance = creditsGiven.length - substitutionsReceived.length
+
+  const teacherNameById = useMemo(
+    () => new Map(teacherDirectory.map((teacher) => [teacher.id, teacher.name])),
+    [teacherDirectory],
+  )
+
+  const counterpartOptions = useMemo(
+    () => teacherDirectory.filter((teacher) => teacher.id !== user?.id),
+    [teacherDirectory, user?.id],
+  )
+
+  const visibleSettlements = useMemo(() => {
+    if (!settlementPlan?.settlements) return []
+
+    if (user?.role === 'TEACHER') {
+      return settlementPlan.settlements.filter(
+        (item) => item.fromTeacherId === user.id || item.toTeacherId === user.id,
+      )
+    }
+
+    return settlementPlan.settlements
+  }, [settlementPlan, user?.id, user?.role])
+
+  const visibleBalances = useMemo(() => {
+    if (!settlementPlan?.balances) return []
+
+    if (user?.role === 'TEACHER') {
+      return settlementPlan.balances.filter((item) => item.teacherId === user.id)
+    }
+
+    return settlementPlan.balances
+  }, [settlementPlan, user?.id, user?.role])
+
+  function entryCounterpartLabel(entry) {
+    return teacherNameById.get(entry.counterpartTeacherId) || entry.coveredFor
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+
+    if (!form.counterpartTeacherId) {
+      setFormError('Select a teacher to link this entry.')
+      return
+    }
+
+    setFormError('')
+    setIsSubmitting(true)
+
+    try {
+      const linkedName = teacherNameById.get(form.counterpartTeacherId) || 'Teacher'
+      await addSubstituteEntry({
+        counterpartTeacherId: form.counterpartTeacherId,
+        coveredFor: linkedName,
+        direction: form.direction,
+        status: form.status,
+        date: form.date,
+      })
+
+      setForm({
+        counterpartTeacherId: '',
+        direction: 'CREDIT',
+        status: 'Pending',
+        date: new Date().toISOString().slice(0, 10),
+      })
+      await refreshSettlementPlan()
+    } catch (error) {
+      setFormError(error.message || 'Unable to save substitution entry.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-full">
@@ -54,6 +142,98 @@ export default function Credits() {
         </div>
       </div>
 
+      <div className="mx-5 mt-5 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Add Linked Credit Entry</h2>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <select
+              value={form.counterpartTeacherId}
+              onChange={(event) => {
+                setForm((prev) => ({ ...prev, counterpartTeacherId: event.target.value }))
+                if (formError) setFormError('')
+              }}
+              className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            >
+              <option value="">Select counterpart teacher</option>
+              {counterpartOptions.map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
+              ))}
+            </select>
+
+            <select
+              value={form.direction}
+              onChange={(event) => setForm((prev) => ({ ...prev, direction: event.target.value }))}
+              className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            >
+              <option value="CREDIT">I covered for this teacher</option>
+              <option value="SUBSTITUTION">This teacher covered for me</option>
+            </select>
+
+            <select
+              value={form.status}
+              onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value }))}
+              className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            >
+              <option value="Pending">Pending</option>
+              <option value="Repaid">Repaid</option>
+            </select>
+
+            <input
+              type="date"
+              value={form.date}
+              onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
+              className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
+          </div>
+
+          {formError && <p className="text-xs text-red-500">{formError}</p>}
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="self-start bg-emerald-600 hover:bg-emerald-700 disabled:opacity-70 text-white text-sm font-semibold rounded-xl px-4 py-2.5"
+          >
+            {isSubmitting ? 'Saving...' : 'Add Entry'}
+          </button>
+        </form>
+      </div>
+
+      <div className="mx-5 mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Chain Settlement Plan</h2>
+        <p className="text-xs text-gray-400 mt-1">
+          Pending linked credits: {settlementPlan?.totalPendingLinkedCredits || 0} | Unsettled teachers: {settlementPlan?.unsettledTeachers || 0}
+        </p>
+
+        <div className="mt-3 flex flex-col gap-2">
+          {visibleBalances.length === 0 ? (
+            <p className="text-xs text-gray-500">No unsettled linked balances right now.</p>
+          ) : (
+            visibleBalances.map((item) => (
+              <div key={item.teacherId} className="rounded-xl border border-gray-100 px-3 py-2 flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-700">{item.teacherName}</span>
+                <span className={`text-xs font-semibold ${item.balance > 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {item.balance > 0 ? '+' : ''}{item.balance}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="mt-3 flex flex-col gap-2">
+          {visibleSettlements.length === 0 ? (
+            <p className="text-xs text-gray-500">No settlement actions required.</p>
+          ) : (
+            visibleSettlements.map((item, index) => (
+              <div key={`${item.fromTeacherId}-${item.toTeacherId}-${index}`} className="rounded-xl border border-indigo-100 bg-indigo-50/40 px-3 py-2">
+                <p className="text-xs text-gray-700">
+                  <span className="font-semibold">{item.fromTeacherName}</span> should settle <span className="font-semibold">{item.amount}</span> with <span className="font-semibold">{item.toTeacherName}</span>
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
       {/* Credits (you covered for others) */}
       <div className="px-5 pt-6 pb-4">
         <div className="flex items-center justify-between mb-3">
@@ -78,7 +258,7 @@ export default function Credits() {
                 className="bg-white rounded-2xl border border-emerald-100 shadow-sm px-4 py-4 flex items-center justify-between"
               >
                 <div className="flex flex-col gap-0.5">
-                  <p className="text-sm font-bold text-gray-900">{item.coveredFor}</p>
+                  <p className="text-sm font-bold text-gray-900">{entryCounterpartLabel(item)}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{formatDate(item.date)}</p>
                 </div>
                 <div className="flex flex-col items-end shrink-0">
@@ -113,7 +293,7 @@ export default function Credits() {
             {substitutionsReceived.map((item) => (
               <div key={item.id} className="bg-white rounded-2xl border border-blue-100 shadow-sm px-4 py-4 flex items-center justify-between">
                 <div className="flex flex-col gap-0.5">
-                  <p className="text-sm font-bold text-gray-900">{item.coveredFor}</p>
+                  <p className="text-sm font-bold text-gray-900">{entryCounterpartLabel(item)}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{formatDate(item.date)}</p>
                 </div>
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${item.status === 'Repaid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>

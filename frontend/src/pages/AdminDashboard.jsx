@@ -8,7 +8,7 @@ function buildTeacherScores(teacherDirectory, workEntries, substituteEntries, ta
       (entry) => (entry.teacherId || 'u1') === teacher.id && entry.workType === 'Lecture',
     ).length
     const substitutions = substituteEntries.filter(
-      (entry) => (entry.teacherId || 'u1') === teacher.id,
+      (entry) => (entry.teacherId || 'u1') === teacher.id && (entry.direction || 'CREDIT') === 'CREDIT',
     ).length
     const completedTasks = tasks.filter(
       (task) => task.assignTo === teacher.id && task.status === 'Completed',
@@ -33,7 +33,9 @@ export default function AdminDashboard() {
     const totalTeachers = teacherDirectory.length
     const totalTasksAssigned = tasks.length
     const pendingTasks = tasks.filter((task) => task.status === 'Pending').length
-    const totalSubstitutions = substituteEntries.length
+    const totalSubstitutions = substituteEntries.filter(
+      (entry) => (entry.direction || 'CREDIT') === 'CREDIT',
+    ).length
     const mostActiveTeacher = teacherScores[0]
     const leastActiveTeacher = teacherScores[teacherScores.length - 1]
     const topOverloaded = teacherScores.slice(0, 3)

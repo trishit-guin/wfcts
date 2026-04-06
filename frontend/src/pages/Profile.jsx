@@ -20,6 +20,9 @@ export default function Profile() {
       (entry) => entry.teacherId === user?.id && entry.workType === 'Lecture',
     ).length
     const userSubstitutes = substituteEntries.filter((entry) => entry.teacherId === user?.id)
+    const substitutionsCovered = userSubstitutes.filter(
+      (entry) => (entry.direction || 'CREDIT') === 'CREDIT',
+    )
     const completedTasks = tasks.filter(
       (task) => task.assignTo === user?.id && task.status === 'Completed',
     ).length
@@ -27,8 +30,8 @@ export default function Profile() {
 
     return {
       lecturesTaken: userLectures,
-      substitutesCovered: userSubstitutes.length,
-      creditsEarned: userSubstitutes.filter((entry) => entry.status === 'Repaid').length,
+      substitutesCovered: substitutionsCovered.length,
+      creditsEarned: substitutionsCovered.filter((entry) => entry.status === 'Repaid').length,
       tasksCompleted: completedTasks,
       industrySessions: sessionsCount,
     }

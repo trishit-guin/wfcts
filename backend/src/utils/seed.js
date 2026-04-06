@@ -42,6 +42,7 @@ async function seedDatabase() {
       className: entry.className,
       hours: entry.hours,
       workType: entry.workType,
+      description: entry.description || `${entry.workType} work logged during initial seed`,
       date: asDate(entry.date),
     })),
   )
@@ -50,9 +51,13 @@ async function seedDatabase() {
     seedSubstituteEntries.map((entry) => ({
       teacherId: usersByEmail.get(entry.teacherEmail)._id,
       coveredFor: entry.coveredFor,
+      counterpartTeacherId: entry.counterpartTeacherEmail
+        ? usersByEmail.get(entry.counterpartTeacherEmail)?._id || null
+        : null,
       date: asDate(entry.date),
       status: entry.status,
       direction: entry.direction,
+      pairingKey: entry.pairingKey || '',
     })),
   )
 

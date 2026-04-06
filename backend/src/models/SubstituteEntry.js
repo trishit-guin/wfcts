@@ -12,6 +12,11 @@ const substituteEntrySchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    counterpartTeacherId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
     date: {
       type: Date,
       required: true,
@@ -26,6 +31,11 @@ const substituteEntrySchema = new mongoose.Schema(
       enum: ['CREDIT', 'SUBSTITUTION'],
       default: 'CREDIT',
     },
+    pairingKey: {
+      type: String,
+      default: '',
+      trim: true,
+    },
   },
   {
     timestamps: true,
@@ -37,6 +47,7 @@ substituteEntrySchema.set('toJSON', {
   transform: (_doc, ret) => {
     ret.id = String(ret._id)
     ret.teacherId = String(ret.teacherId)
+    ret.counterpartTeacherId = ret.counterpartTeacherId ? String(ret.counterpartTeacherId) : ''
     ret.date = ret.date ? new Date(ret.date).toISOString().slice(0, 10) : ''
     delete ret._id
     return ret
