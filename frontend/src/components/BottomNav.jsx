@@ -2,129 +2,123 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 function getInitials(name) {
-  if (!name) return 'Me'
-  return name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+  if (!name) return 'WF'
+  return name.split(' ').map((word) => word[0]).slice(0, 2).join('').toUpperCase()
 }
 
-const dashIcon = (active) => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-  </svg>
-)
+function SymbolIcon({ name, active = false, className = '' }) {
+  return (
+    <span
+      className={`material-symbols-outlined text-[1.4rem] leading-none ${className}`}
+      style={{ fontVariationSettings: `'FILL' ${active ? 1 : 0}, 'wght' ${active ? 700 : 500}, 'GRAD' 0, 'opsz' 24` }}
+      aria-hidden="true"
+    >
+      {name}
+    </span>
+  )
+}
 
 const teacherNavItems = [
   {
     to: '/dashboard',
     label: 'Dashboard',
-    icon: dashIcon,
+    icon: 'dashboard',
   },
   {
     to: '/tasks',
     label: 'Tasks',
-    icon: (active) => (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V9m-7-4h5m0 0v5m0-5L10 14" />
-      </svg>
-    ),
-  },
-  {
-    to: '/industry-sessions',
-    label: 'Sessions',
-    icon: (active) => (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 6h8m-8 4h8m-8 4h5M6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z" />
-      </svg>
-    ),
+    icon: 'assignment_turned_in',
   },
   {
     to: '/work-entry',
     label: 'Log Work',
-    icon: (active) => (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-      </svg>
-    ),
+    icon: 'add_circle',
   },
   {
     to: '/credits',
     label: 'Credits',
-    icon: (active) => (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
+    icon: 'payments',
   },
   {
     to: '/timetable',
     label: 'Slots',
-    icon: (active) => (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
+    icon: 'calendar_view_week',
   },
 ]
 
 const adminNavItems = [
-  { to: '/admin/dashboard', label: 'Dashboard', icon: dashIcon },
+  { to: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard' },
   {
     to: '/assign-task',
     label: 'Assign',
-    icon: (active) => (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-      </svg>
-    ),
+    icon: 'task_alt',
   },
   {
     to: '/fairness',
     label: 'Fairness',
-    icon: (active) => (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M7 7v10m10-10v10M5 17h14M9 11h6" />
-      </svg>
-    ),
+    icon: 'balance',
   },
   {
     to: '/timetable',
     label: 'Slots',
-    icon: (active) => (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
+    icon: 'calendar_view_week',
   },
 ]
 const hodNavItems = [
-  { to: '/hod/dashboard', label: 'Dashboard', icon: dashIcon },
+  { to: '/hod/dashboard', label: 'Dashboard', icon: 'dashboard' },
   {
     to: '/assign-task',
     label: 'Assign',
-    icon: (active) => (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-      </svg>
-    ),
+    icon: 'task_alt',
   },
   {
     to: '/fairness',
     label: 'Fairness',
-    icon: (active) => (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M7 7v10m10-10v10M5 17h14M9 11h6" />
-      </svg>
-    ),
+    icon: 'balance',
   },
   {
     to: '/timetable',
     label: 'Slots',
-    icon: (active) => (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
+    icon: 'calendar_view_week',
   },
 ]
+
+function NavItem({ item, mobile = false }) {
+  return (
+    <NavLink
+      key={item.to}
+      to={item.to}
+      className={({ isActive }) => {
+        if (mobile) {
+          return `flex min-w-0 flex-1 flex-col items-center justify-center rounded-[1.35rem] px-2 py-2 text-center transition-all duration-200 ${
+            isActive
+              ? 'bg-[var(--wfcts-primary)]/12 text-[var(--wfcts-primary)] shadow-sm shadow-[var(--wfcts-primary)]/10'
+              : 'text-slate-400 hover:text-[var(--wfcts-primary)]'
+          }`
+        }
+
+        return `group flex h-14 w-14 items-center justify-center rounded-[1.15rem] transition-all duration-200 ${
+          isActive
+            ? 'bg-[var(--wfcts-primary)]/12 text-[var(--wfcts-primary)] shadow-lg shadow-[var(--wfcts-primary)]/10'
+            : 'text-slate-400 hover:bg-slate-100 hover:text-[var(--wfcts-primary)]'
+        }`
+      }}
+    >
+      {({ isActive }) => (
+        <>
+          <div className="flex items-center justify-center">
+            <SymbolIcon name={item.icon} active={isActive} />
+          </div>
+          {mobile ? (
+            <span className="mt-1 text-[0.54rem] font-semibold uppercase tracking-[0.1em] leading-tight">{item.label}</span>
+          ) : (
+            <span className="sr-only">{item.label}</span>
+          )}
+        </>
+      )}
+    </NavLink>
+  )
+}
 
 export default function BottomNav() {
   const { user } = useAuth()
@@ -136,62 +130,49 @@ export default function BottomNav() {
     : teacherNavItems
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 shadow-[0_-1px_12px_rgba(0,0,0,0.06)]">
-      <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-1">
-        {navItems.map((item) => (
+    <>
+      <aside className="fixed left-6 top-1/2 z-50 hidden -translate-y-1/2 xl:flex">
+        <div className="flex flex-col items-center gap-5 rounded-[2rem] border border-white/70 bg-white/85 px-3 py-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+          <div className="flex h-14 w-14 items-center justify-center rounded-[1.3rem] bg-[var(--wfcts-primary)] text-xl font-black text-white shadow-lg shadow-[var(--wfcts-primary)]/20">
+            W
+          </div>
+          <div className="flex flex-col gap-3">
+            {navItems.map((item) => (
+              <NavItem key={item.to} item={item} />
+            ))}
+          </div>
           <NavLink
-            key={item.to}
-            to={item.to}
+            to="/profile"
             className={({ isActive }) =>
-              `relative flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-colors duration-150 ${
-                isActive ? 'text-emerald-600' : 'text-gray-400'
+              `mt-2 flex h-14 w-14 items-center justify-center rounded-[1.15rem] transition-all duration-200 ${
+                isActive
+                  ? 'bg-[var(--wfcts-secondary)]/16 text-[var(--wfcts-secondary)] shadow-lg shadow-[var(--wfcts-secondary)]/10'
+                  : 'text-slate-500 hover:bg-slate-100'
               }`
             }
           >
             {({ isActive }) => (
-              <>
-                <div className={`p-1.5 rounded-xl transition-all duration-200 ${isActive ? 'bg-emerald-50' : ''}`}>
-                  {item.icon(isActive)}
-                </div>
-                <span className={`text-[10px] leading-none ${isActive ? 'font-bold' : 'font-medium'}`}>
-                  {item.label}
-                </span>
-                {isActive && (
-                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-emerald-500" />
-                )}
-              </>
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold ${
+                isActive
+                  ? 'bg-[var(--wfcts-secondary)] text-white'
+                  : 'bg-slate-200 text-slate-600'
+              }`}>
+                {getInitials(user?.name)}
+              </div>
             )}
           </NavLink>
-        ))}
+        </div>
+      </aside>
 
-        {/* Profile tab */}
-        <NavLink
-          to="/profile"
-          className={({ isActive }) =>
-            `relative flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-colors duration-150 ${
-              isActive ? 'text-emerald-600' : 'text-gray-400'
-            }`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <div className={`p-1.5 rounded-xl transition-all duration-200 ${isActive ? 'bg-emerald-50' : ''}`}>
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                  isActive ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'
-                }`}>
-                  {getInitials(user?.name)}
-                </div>
-              </div>
-              <span className={`text-[10px] leading-none ${isActive ? 'font-bold' : 'font-medium'}`}>
-                Profile
-              </span>
-              {isActive && (
-                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-emerald-500" />
-              )}
-            </>
-          )}
-        </NavLink>
-      </div>
-    </nav>
+      <nav className="fixed bottom-4 left-0 right-0 z-50 xl:hidden">
+        <div className="mx-auto max-w-3xl px-4">
+          <div className="flex items-center justify-around gap-1 rounded-[2rem] border border-white/70 bg-[rgba(248,250,252,0.94)] px-3 py-3 shadow-[0_16px_36px_rgba(15,23,42,0.10)] backdrop-blur-xl">
+            {navItems.map((item) => (
+              <NavItem key={item.to} item={item} mobile />
+            ))}
+          </div>
+        </div>
+      </nav>
+    </>
   )
 }

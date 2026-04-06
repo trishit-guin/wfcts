@@ -1,7 +1,7 @@
 # WFCTS Project Context
 
-Last updated: 2026-04-06 (linked substitutions + chain settlement + timetable availability)
-Workspace root: D:/WFCTS
+Last updated: 2026-04-07 (frontend redesign across auth, teacher, admin, and HOD views)
+Workspace root: D:/inhouse/wfcts
 
 ## Project Snapshot
 WFCTS is a full-stack React + Vite + Express application for teacher workload management, class-wise subject-hour tracking, substitution credits, tasks, industry sessions, fairness monitoring, and timetable-based substitute suggestion.
@@ -12,6 +12,7 @@ Workspace folders:
 
 Current implementation status:
 - frontend is API-backed and role-aware
+- frontend UI has been redesigned across auth, teacher, admin, and HOD surfaces
 - backend persists data in MongoDB via Mongoose
 - authentication is JWT-based with session restore
 - signup is public for TEACHER role
@@ -165,29 +166,27 @@ Source: frontend/src/components/BottomNav.jsx
 Teacher tabs:
 - Dashboard
 - Tasks
-- Sessions
 - Log Work
 - Credits
 - Slots
-- Profile
 
 Admin tabs:
 - Dashboard
 - Assign
 - Fairness
 - Slots
-- Profile
 
 HOD tabs:
 - Dashboard
 - Assign
 - Fairness
 - Slots
-- Profile
 
 Layout behavior:
-- frontend/src/components/Layout.jsx always renders bottom navigation
-- top-right floating profile button is removed
+- frontend/src/components/Layout.jsx renders a glass sticky header with top-right profile access
+- mobile uses a pill-shaped bottom navigation
+- xl screens use a left-side desktop rail instead of the mobile nav
+- profile is accessed from the header avatar/chip, not a bottom-nav tab
 
 ## MongoDB Data Model
 Key collections/models:
@@ -344,32 +343,36 @@ Credits page integration:
 ## Implemented Pages and Current Behavior
 1. Login (frontend/src/pages/Login.jsx)
 - backend login with role redirect
-- sample account hints
+- redesigned centered auth card
+- sample account hints shown inside auth page
 
 2. Signup (frontend/src/pages/Signup.jsx)
 - creates TEACHER account and signs in
+- uses same centered auth-card style as login
 
 3. Dashboard (frontend/src/pages/Dashboard.jsx)
-- teacher workload cards and quick actions
+- redesigned editorial teacher dashboard with quick actions, workload metrics, recent logs, and schedule panel
 - substitution metrics use CREDIT-side records
 
 4. Work Entry (frontend/src/pages/WorkEntry.jsx)
-- logs subject/class/hours/work type/description and persists
+- redesigned two-column logging surface with weekly progress and recent entries
+- logs subject/class/hours/work type/description/date and persists
 
 5. Credits (frontend/src/pages/Credits.jsx)
+- redesigned credits ledger and settlement UI
 - ledger view for credits/substitutions
 - linked entry creation by counterpart teacher
 - time-window based free-teacher suggestions
 - chain settlement panel
 
 6. Profile (frontend/src/pages/Profile.jsx)
-- role-visible profile and contribution summary
+- redesigned profile hero, account detail cards, editable account form, and live contribution summary
 
 7. Tasks (frontend/src/pages/Tasks.jsx)
-- list and complete teacher tasks
+- redesigned task queue with pending/completed views and large task cards
 
 8. Assign Task (frontend/src/pages/AssignTask.jsx)
-- ADMIN/HOD assignment flow using live teacher directory
+- redesigned ADMIN/HOD assignment composer and live task queue using teacher directory
 
 9. Industry Sessions (frontend/src/pages/IndustrySessions.jsx)
 - tracks sessions (proof metadata only)
@@ -378,22 +381,25 @@ Credits page integration:
 - class/division progress by teacher/subject/class
 
 11. Workload Fairness Dashboard (frontend/src/pages/WorkloadFairnessDashboard.jsx)
-- ADMIN/HOD teacher workload score with component breakdown
+- redesigned ADMIN/HOD workload score board with component breakdown
 
 12. Admin Dashboard (frontend/src/pages/AdminDashboard.jsx)
-- high-level widgets and top-overloaded preview
+- redesigned manager overview using shared analytics/dashboard layout
 
 13. HOD Dashboard (frontend/src/pages/HodDashboard.jsx)
-- department-level widgets and overload preview
+- redesigned department overview using shared analytics/dashboard layout
 
 14. Timetable (frontend/src/pages/Timetable.jsx)
-- add/edit/delete weekly slots
+- redesigned timetable with day tabs, inline add-slot action, and richer slot cards
 - teacher self-management and admin/HOD cross-teacher management
 
 ## Current UX and Design Conventions
-- mobile-first card-driven layout
-- consistent page headers and subtitle text
-- bottom fixed nav with active indicator
+- light-mode branded system aligned to DESIGN.md
+- Manrope headlines and Inter body/label typography
+- mobile-first card-driven layout with editorial/bento-style sections
+- glass sticky header with top-right profile chip
+- pill-shaped mobile bottom nav and xl desktop side rail
+- auth pages use a centered single-card layout
 - no external chart library
 - timetable and credits forms use in-page validation messaging
 
@@ -412,6 +418,8 @@ Routing and access:
 - frontend/src/components/ProtectedRoute.jsx
 - frontend/src/components/Layout.jsx
 - frontend/src/components/BottomNav.jsx
+- frontend/src/components/AuthShell.jsx
+- frontend/src/components/ManagerDashboardView.jsx
 
 Context and auth:
 - frontend/src/context/AuthContext.jsx
@@ -454,6 +462,7 @@ Utilities:
 - frontend/src/utils/api.js
 - frontend/src/utils/formatDate.js
 - frontend/src/utils/subjectHours.js
+- frontend/src/utils/workloadScore.js
 
 Runtime and setup:
 - frontend/src/main.jsx

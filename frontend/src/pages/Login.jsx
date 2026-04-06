@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getHomeRouteByRole, useAuth } from '../context/AuthContext'
+import AuthShell from '../components/AuthShell'
 
 const initialForm = { email: '', password: '' }
 
@@ -23,13 +24,13 @@ export default function Login() {
     }
   }, [authReady, isAuthenticated, user, navigate])
 
-  function handleChange(e) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  function handleChange(event) {
+    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }))
     if (error) setError('')
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault()
+  async function handleSubmit(event) {
+    event.preventDefault()
     setIsSubmitting(true)
     setError('')
 
@@ -44,68 +45,63 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 pt-16 pb-8 flex items-start justify-center">
-      <div className="w-full max-w-sm bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-        <p className="text-xs font-semibold text-emerald-500 uppercase tracking-widest mb-1">WFCTS</p>
-        <h1 className="text-lg sm:text-xl font-bold text-gray-900">WFCTS - Workload Fairness and Credit Tracking System</h1>
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">Sign in</h2>
-        <p className="text-xs sm:text-sm text-gray-400 mt-1">Use an existing account to access the app.</p>
-
-        <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3.5">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-gray-700">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="teacher@wfcts.edu"
-              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              required
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-gray-700">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="Enter password"
-              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              required
-            />
-          </div>
-
-          {error && <p className="text-xs text-red-500">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="mt-1 w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-70 text-white font-semibold rounded-2xl py-3.5 text-sm shadow-lg shadow-emerald-200 transition-all"
-          >
-            {isSubmitting ? 'Signing in...' : 'Login'}
-          </button>
-        </form>
-
-        <p className="mt-4 text-xs text-center text-gray-500">
+    <AuthShell
+      title="Sign in"
+      subtitle="Use your existing account to access the live MongoDB-backed workspace."
+      panelLabel="Workload Fairness and Credit Tracking"
+      panelTitle="One shared system for credits, tasks, timetables, and workload balance."
+      panelBody="Log in to continue with the connected frontend and backend experience for teachers, administrators, and department heads."
+      infoCards={sampleAccounts.map((account) => ({
+        label: account.role,
+        title: account.email,
+        body: `Password: ${account.password}`,
+      }))}
+      footer={(
+        <p className="text-sm text-[var(--wfcts-muted)]">
           New here?{' '}
-          <Link to="/signup" className="font-semibold text-emerald-600 hover:text-emerald-700">
+          <Link to="/signup" className="font-semibold text-[var(--wfcts-primary)] hover:opacity-75">
             Create an account
           </Link>
         </p>
+      )}
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <label className="space-y-2">
+          <span className="text-sm font-semibold text-slate-700">Email</span>
+          <input
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="teacher@wfcts.edu"
+            className="w-full rounded-[1rem] border border-slate-200 bg-[var(--wfcts-surface-muted)] px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[var(--wfcts-primary)]/20 focus:bg-white focus:ring-2 focus:ring-[var(--wfcts-primary)]/10"
+            required
+          />
+        </label>
 
-        <div className="mt-4 rounded-xl bg-gray-50 border border-gray-100 p-3 space-y-2">
-          <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Sample Accounts</p>
-          {sampleAccounts.map((account) => (
-            <div key={account.role} className="text-[11px] text-gray-500">
-              <p>{account.role}: {account.email}</p>
-              <p>Password: {account.password}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+        <label className="space-y-2">
+          <span className="text-sm font-semibold text-slate-700">Password</span>
+          <input
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="Enter password"
+            className="w-full rounded-[1rem] border border-slate-200 bg-[var(--wfcts-surface-muted)] px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[var(--wfcts-primary)]/20 focus:bg-white focus:ring-2 focus:ring-[var(--wfcts-primary)]/10"
+            required
+          />
+        </label>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="mt-2 w-full rounded-full bg-gradient-to-br from-[var(--wfcts-primary)] to-[#284bb0] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-[var(--wfcts-primary)]/18 transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {isSubmitting ? 'Signing in...' : 'Login'}
+        </button>
+      </form>
+    </AuthShell>
   )
 }

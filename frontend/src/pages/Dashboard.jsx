@@ -2,63 +2,135 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
+import { formatDate } from '../utils/formatDate'
 import { getRequiredHours } from '../utils/subjectHours'
 
-function workloadLevel(totalHours) {
-  if (totalHours < 20) return { label: 'Low', color: 'bg-blue-100 text-blue-600' }
-  if (totalHours <= 40) return { label: 'Normal', color: 'bg-emerald-100 text-emerald-700' }
-  return { label: 'High', color: 'bg-red-100 text-red-600' }
+const dayLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+function workloadLevel(percent) {
+  if (percent >= 80) {
+    return {
+      label: 'Optimal',
+      badgeClass: 'bg-[var(--wfcts-secondary)]/14 text-[var(--wfcts-secondary)]',
+    }
+  }
+
+  if (percent >= 45) {
+    return {
+      label: 'On Track',
+      badgeClass: 'bg-[var(--wfcts-primary)]/10 text-[var(--wfcts-primary)]',
+    }
+  }
+
+  return {
+    label: 'Low Load',
+    badgeClass: 'bg-amber-100 text-amber-700',
+  }
 }
 
-function StatCard({ label, value, sub, color }) {
-  const colors = {
-    emerald: 'bg-emerald-50 border-emerald-100 text-emerald-600',
-    blue: 'bg-blue-50 border-blue-100 text-blue-600',
-    amber: 'bg-amber-50 border-amber-100 text-amber-600',
+function formatTime(value) {
+  if (!value || !value.includes(':')) return value || ''
+  const [hoursText, minutes] = value.split(':')
+  const hours = Number(hoursText)
+  if (Number.isNaN(hours)) return value
+  const suffix = hours >= 12 ? 'PM' : 'AM'
+  const displayHours = ((hours + 11) % 12) + 1
+  return `${displayHours}:${minutes} ${suffix}`
+}
+
+function iconForWorkType(type) {
+  if (type === 'Lecture') return 'menu_book'
+  if (type === 'Lab') return 'science'
+  if (type === 'Admin') return 'assignment'
+  if (type === 'Extra Duty') return 'bolt'
+  return 'history_edu'
+}
+
+function OverviewCard({ icon, label, value, sub, badge, tone }) {
+  const toneClasses = {
+    primary: 'text-[var(--wfcts-primary)] bg-[var(--wfcts-primary)]/8',
+    secondary: 'text-[var(--wfcts-secondary)] bg-[var(--wfcts-secondary)]/10',
+    tertiary: 'text-[#9a3412] bg-orange-100',
   }
 
   return (
-    <div className={`rounded-2xl border p-4 flex flex-col gap-1 ${colors[color]}`}>
-      <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wide opacity-70">{label}</span>
-      <span className="text-3xl sm:text-4xl font-bold leading-none">{value}</span>
-      {sub && <span className="text-[10px] sm:text-xs opacity-60 mt-1">{sub}</span>}
+    <div className="wfcts-card p-6">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${toneClasses[tone]}`}>
+          <span className="material-symbols-outlined text-[1.35rem]">{icon}</span>
+        </span>
+        {badge && <span className="wfcts-chip bg-slate-100 text-slate-600">{badge}</span>}
+      </div>
+      <p className="text-sm font-medium text-[var(--wfcts-muted)]">{label}</p>
+      <p className="font-headline mt-2 text-3xl font-extrabold tracking-[-0.04em] text-[var(--wfcts-primary)]">
+        {value}
+      </p>
+      <p className="mt-2 text-xs leading-relaxed text-[var(--wfcts-muted)]">{sub}</p>
     </div>
   )
 }
 
-function SubjectCard({ item }) {
-  const remaining = Math.max(item.requiredHours - item.completedHours, 0)
-  const progress = Math.min(Math.round((item.completedHours / item.requiredHours) * 100), 100)
+function ProgressRow({ item }) {
+  const progress = item.requiredHours
+    ? Math.min(Math.round((item.completedHours / item.requiredHours) * 100), 100)
+    : 0
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm sm:text-base font-bold text-gray-900">{item.name}</p>
-          <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">{item.section}</p>
-        </div>
-        <span className="text-[10px] sm:text-xs font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full shrink-0">
-          {progress}%
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 text-sm font-semibold">
+        <span className="text-slate-800">{item.name}</span>
+        <span className="text-[var(--wfcts-primary)]">
+          {item.completedHours}/{item.requiredHours} Hours
         </span>
       </div>
-
-      <div className="mt-3 w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${progress}%` }} />
+      <div className="h-3 overflow-hidden rounded-full bg-slate-200/80">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-[var(--wfcts-primary)] to-[#4f7bff] shadow-[0_0_16px_rgba(30,58,138,0.18)]"
+          style={{ width: `${progress}%` }}
+        />
       </div>
+    </div>
+  )
+}
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <div className="bg-gray-50 rounded-xl px-2.5 py-2">
-          <p className="text-[10px] uppercase tracking-wide text-gray-400">Required</p>
-          <p className="text-xs sm:text-sm font-bold text-gray-800 mt-0.5">{item.requiredHours}h</p>
-        </div>
-        <div className="bg-gray-50 rounded-xl px-2.5 py-2">
-          <p className="text-[10px] uppercase tracking-wide text-gray-400">Completed</p>
-          <p className="text-xs sm:text-sm font-bold text-blue-600 mt-0.5">{item.completedHours}h</p>
-        </div>
-        <div className="bg-gray-50 rounded-xl px-2.5 py-2">
-          <p className="text-[10px] uppercase tracking-wide text-gray-400">Remaining</p>
-          <p className="text-xs sm:text-sm font-bold text-amber-600 mt-0.5">{remaining}h</p>
-        </div>
+function ActivityRow({ entry }) {
+  return (
+    <div className="group flex items-center gap-4 rounded-[1.4rem] px-4 py-4 transition-colors hover:bg-slate-50">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--wfcts-secondary)]/10 text-[var(--wfcts-secondary)]">
+        <span className="material-symbols-outlined">{iconForWorkType(entry.workType)}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold text-slate-900">
+          {entry.subject || 'Work Entry'}
+        </p>
+        <p className="text-xs text-[var(--wfcts-muted)]">
+          {formatDate(entry.date)} • {entry.hours} Hours • {entry.workType || 'Recorded'}
+        </p>
+      </div>
+      <span className="material-symbols-outlined text-slate-300 transition-colors group-hover:text-[var(--wfcts-primary)]">
+        chevron_right
+      </span>
+    </div>
+  )
+}
+
+function ScheduleItem({ slot, highlight }) {
+  return (
+    <div className="flex gap-4">
+      <div className="flex flex-col items-center">
+        <div className={`h-3 w-3 rounded-full ${highlight ? 'bg-[var(--wfcts-secondary)] shadow-[0_0_12px_rgba(13,148,136,0.5)]' : 'border-2 border-white/40'}`} />
+        <div className="my-2 h-full w-px bg-white/20" />
+      </div>
+      <div className="pb-2">
+        <p className={`text-[0.65rem] font-bold uppercase tracking-[0.24em] ${highlight ? 'text-[var(--wfcts-secondary-soft)]' : 'text-white/60'}`}>
+          {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+        </p>
+        <p className="font-headline mt-1 text-lg font-bold leading-tight text-white">
+          {slot.subject || 'Open Slot'}
+        </p>
+        <p className="text-xs text-white/75">
+          {slot.className || 'Teaching block'}{slot.location ? ` • ${slot.location}` : ''}
+        </p>
       </div>
     </div>
   )
@@ -67,7 +139,7 @@ function SubjectCard({ item }) {
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { workEntries, substituteEntries } = useWFCTS()
+  const { workEntries, substituteEntries, tasks, timetableSlots, industrySessions } = useWFCTS()
 
   const teacherEntries = useMemo(
     () => workEntries.filter((entry) => entry.teacherId === user?.id),
@@ -75,10 +147,20 @@ export default function Dashboard() {
   )
 
   const teacherCredits = useMemo(
-    () => substituteEntries.filter(
-      (entry) => entry.teacherId === user?.id && (entry.direction || 'CREDIT') === 'CREDIT',
-    ),
+    () => substituteEntries.filter((entry) => entry.teacherId === user?.id),
     [substituteEntries, user?.id],
+  )
+
+  const teacherTasks = useMemo(
+    () => tasks.filter((task) => task.assignTo === user?.id),
+    [tasks, user?.id],
+  )
+
+  const teacherSlots = useMemo(
+    () => timetableSlots
+      .filter((slot) => slot.teacherId === user?.id)
+      .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime)),
+    [timetableSlots, user?.id],
   )
 
   const subjectPlans = useMemo(() => {
@@ -104,99 +186,237 @@ export default function Dashboard() {
       .slice(0, 4)
   }, [teacherEntries])
 
-  const totalHours = teacherEntries.reduce((acc, entry) => acc + Number(entry.hours || 0), 0)
-  const pendingObligations = teacherCredits.filter((entry) => entry.status === 'Pending').length
-  const creditsEarned = teacherCredits.filter((entry) => entry.status === 'Repaid').length
-  const workload = workloadLevel(totalHours)
+  const totalHours = teacherEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0)
+  const totalRequiredHours = subjectPlans.reduce((sum, item) => sum + Number(item.requiredHours || 0), 0)
+  const completionPercent = totalRequiredHours
+    ? Math.min(Math.round((totalHours / totalRequiredHours) * 100), 100)
+    : Math.min(Math.round(totalHours * 8), 100)
+  const workload = workloadLevel(completionPercent)
+
+  const creditsGiven = teacherCredits.filter((entry) => (entry.direction || 'CREDIT') === 'CREDIT')
+  const substitutionsTaken = teacherCredits.filter((entry) => (entry.direction || 'CREDIT') === 'SUBSTITUTION')
+  const netCreditBalance = creditsGiven.length - substitutionsTaken.length
+
+  const pendingTasks = teacherTasks
+    .filter((task) => task.status === 'Pending')
+    .sort((a, b) => (a.deadline || '').localeCompare(b.deadline || ''))
+  const nextTask = pendingTasks[0]
+
+  const recentLogs = [...teacherEntries]
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    .slice(0, 4)
+
+  const todayIndex = new Date().getDay()
+  const todaySlots = teacherSlots.filter((slot) => slot.dayOfWeek === todayIndex)
+  const displayedSchedule = todaySlots.length > 0 ? todaySlots.slice(0, 3) : teacherSlots.slice(0, 3)
+  const scheduleLabel = todaySlots.length > 0 ? `Today, ${dayLabels[todayIndex]}` : 'Next recurring slots'
+
+  const nextIndustrySession = [...industrySessions]
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+    .find((session) => session.date)
 
   return (
-    <div className="flex flex-col min-h-full">
-      <div className="bg-white px-5 pt-10 pb-6 shadow-sm">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs font-semibold text-emerald-500 uppercase tracking-widest mb-1">WFCTS</p>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{user?.name}</h1>
-            <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-xs sm:text-sm text-gray-400">{user?.department}</p>
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${workload.color}`}>
-                {workload.label}
+    <div className="space-y-8 animate-float-in">
+      <section className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="font-label text-sm font-semibold uppercase tracking-[0.22em] text-[var(--wfcts-muted)]">
+            Academic Staff Dashboard
+          </p>
+          <h2 className="font-headline mt-2 text-4xl font-extrabold tracking-[-0.06em] text-[var(--wfcts-primary)] sm:text-5xl">
+            Welcome back, {user?.name || 'Faculty Member'}
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm text-[var(--wfcts-muted)] sm:text-base">
+            Track your workload, credits, tasks, and recurring teaching slots from one connected workspace.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/work-entry')}
+            className="flex items-center gap-2 rounded-full bg-gradient-to-br from-[var(--wfcts-primary)] to-[#284bb0] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[var(--wfcts-primary)]/20 transition-transform hover:-translate-y-0.5"
+          >
+            <span className="material-symbols-outlined text-base">add_circle</span>
+            Log Work
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/credits')}
+            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-[var(--wfcts-primary)] shadow-sm transition-colors hover:bg-slate-50"
+          >
+            <span className="material-symbols-outlined text-base">payments</span>
+            Add Substitution
+          </button>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        <OverviewCard
+          icon="balance"
+          label="Workload Balance"
+          value={`${completionPercent}%`}
+          sub={`${subjectPlans.length || 0} tracked subject${subjectPlans.length === 1 ? '' : 's'} contributing to your current progress.`}
+          badge={workload.label}
+          tone="primary"
+        />
+        <OverviewCard
+          icon="assignment_turned_in"
+          label="Pending Tasks"
+          value={String(pendingTasks.length).padStart(2, '0')}
+          sub={nextTask ? `Next: ${nextTask.title} due ${formatDate(nextTask.deadline)}` : 'You have no pending tasks right now.'}
+          badge={pendingTasks.length > 0 ? 'Due Soon' : 'Clear'}
+          tone="tertiary"
+        />
+        <OverviewCard
+          icon="payments"
+          label="Substitution Credits"
+          value={`${netCreditBalance > 0 ? '+' : ''}${netCreditBalance}`}
+          sub={`${creditsGiven.length} credit entries recorded and ${substitutionsTaken.length} substitution entries linked to your account.`}
+          badge={netCreditBalance >= 0 ? 'Redeemable' : 'Outstanding'}
+          tone="secondary"
+        />
+      </section>
+
+      <section className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="space-y-8 lg:col-span-2">
+          <div className="relative overflow-hidden rounded-[2rem] bg-[rgba(255,255,255,0.72)] p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)] ring-1 ring-white/70">
+            <div className="absolute right-0 top-0 p-8 opacity-10">
+              <span className="material-symbols-outlined text-[7rem]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                insights
               </span>
             </div>
+            <div className="relative z-10 space-y-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-headline text-xl font-bold text-[var(--wfcts-primary)]">Workload Metrics</h3>
+                  <p className="mt-1 text-sm text-[var(--wfcts-muted)]">
+                    Subject progress is calculated from your live work entries and required hour targets.
+                  </p>
+                </div>
+                <span className={`wfcts-chip ${workload.badgeClass}`}>{workload.label}</span>
+              </div>
+
+              {subjectPlans.length === 0 ? (
+                <div className="wfcts-card-muted p-6">
+                  <p className="font-semibold text-slate-800">No teaching hours logged yet</p>
+                  <p className="mt-1 text-sm text-[var(--wfcts-muted)]">
+                    Add your first work entry to start populating the workload chart.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {subjectPlans.map((item) => (
+                    <ProgressRow key={item.id} item={item} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="wfcts-card p-8">
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="font-headline text-xl font-bold text-[var(--wfcts-primary)]">Recent Logs</h3>
+              <button
+                type="button"
+                onClick={() => navigate('/work-entry')}
+                className="text-sm font-bold text-[var(--wfcts-primary)] transition-opacity hover:opacity-75"
+              >
+                View All
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {recentLogs.length === 0 ? (
+                <div className="wfcts-card-muted p-6">
+                  <p className="font-semibold text-slate-800">Nothing logged yet</p>
+                  <p className="mt-1 text-sm text-[var(--wfcts-muted)]">
+                    Your latest lectures, labs, and duties will appear here.
+                  </p>
+                </div>
+              ) : (
+                recentLogs.map((entry) => (
+                  <ActivityRow key={entry.id} entry={entry} />
+                ))
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="px-5 pt-6 grid grid-cols-2 gap-3">
-        <StatCard label="Hours Logged" value={totalHours} sub="This semester" color="blue" />
-        <StatCard label="Credits Earned" value={creditsEarned} sub="Repaid substitutions" color="emerald" />
-        <div className="col-span-2">
-          <StatCard label="Pending Obligations" value={pendingObligations} sub="Lectures you are owed back" color="amber" />
-        </div>
-      </div>
+        <div className="space-y-6">
+          <div className="relative min-h-[28rem] overflow-hidden rounded-[2rem] bg-[var(--wfcts-primary)] p-8 text-white shadow-[0_22px_60px_rgba(30,58,138,0.22)]">
+            <div className="absolute right-[-10%] top-[-14%] h-64 w-64 rounded-full bg-white/6 blur-3xl" />
+            <div className="relative z-10 flex h-full flex-col">
+              <div className="mb-8 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-headline text-xl font-bold">Today's Schedule</h3>
+                  <p className="mt-1 text-sm text-white/70">{scheduleLabel}</p>
+                </div>
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  calendar_view_week
+                </span>
+              </div>
 
-      <div className="px-5 pt-6">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Quick Actions</h2>
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={() => navigate('/credits')}
-            className="flex items-center gap-3 bg-white rounded-xl px-4 py-3.5 shadow-sm border border-gray-100 text-left hover:shadow-md transition-shadow"
-          >
-            <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-800">View Credit Balance</p>
-              <p className="text-xs text-gray-400">See who owes you and who you owe</p>
-            </div>
-          </button>
-          <button
-            onClick={() => navigate('/credits')}
-            className="flex items-center gap-3 bg-white rounded-xl px-4 py-3.5 shadow-sm border border-gray-100 text-left hover:shadow-md transition-shadow"
-          >
-            <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-800">Give and Take Ledger</p>
-              <p className="text-xs text-gray-400">Track who covered for whom</p>
-            </div>
-          </button>
-        </div>
-      </div>
+              <div className="flex-1 space-y-7">
+                {displayedSchedule.length === 0 ? (
+                  <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-5">
+                    <p className="font-semibold">No recurring slots yet</p>
+                    <p className="mt-1 text-sm text-white/70">
+                      Add timetable slots to see your teaching rhythm here.
+                    </p>
+                  </div>
+                ) : (
+                  displayedSchedule.map((slot, index) => (
+                    <ScheduleItem key={slot.id} slot={slot} highlight={index === 0} />
+                  ))
+                )}
 
-      <div className="px-5 pt-6">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Subjects Taught</h2>
-        {subjectPlans.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 text-center">
-            <p className="text-sm font-semibold text-gray-700">No teaching hours logged yet</p>
-            <p className="text-xs text-gray-400 mt-1">Log work entries to see live subject progress here.</p>
+                <div className="border-t border-white/10 pt-6">
+                  <div className="rounded-[1.4rem] bg-white/10 p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="material-symbols-outlined text-[var(--wfcts-secondary-soft)]">
+                        notifications_active
+                      </span>
+                      <p className="text-sm leading-relaxed text-white/80">
+                        {nextTask
+                          ? `Reminder: ${nextTask.title} is due on ${formatDate(nextTask.deadline)}.`
+                          : 'Your current queue is clear. Keep logging work and credits to maintain accurate tracking.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {subjectPlans.map((item) => (
-              <SubjectCard key={item.id} item={item} />
-            ))}
+
+          <div className="wfcts-card-muted flex items-center gap-4 p-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--wfcts-primary)]/10 text-[var(--wfcts-primary)]">
+              <span className="material-symbols-outlined">chat</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--wfcts-primary)]">
+                Coordination Cue
+              </p>
+              <p className="mt-1 truncate text-sm font-semibold text-slate-800">
+                {nextIndustrySession?.title || nextIndustrySession?.companyName || nextTask?.assignedBy || user?.department || 'Department Office'}
+              </p>
+              <p className="text-xs text-[var(--wfcts-muted)]">
+                {nextIndustrySession?.date
+                  ? `Upcoming session on ${formatDate(nextIndustrySession.date)}`
+                  : nextTask
+                    ? `Assigned by ${nextTask.assignedBy}`
+                    : 'No urgent coordination items at the moment.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate(nextIndustrySession ? '/industry-sessions' : nextTask ? '/tasks' : '/profile')}
+              className="ml-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-[var(--wfcts-primary)] shadow-sm"
+            >
+              <span className="material-symbols-outlined text-base">north_east</span>
+            </button>
           </div>
-        )}
-      </div>
-
-      <div className="flex-1" />
-
-      <div className="px-5 pb-4 pt-6">
-        <button
-          onClick={() => navigate('/work-entry')}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold rounded-2xl py-4 text-base shadow-lg shadow-emerald-200 transition-all duration-150 flex items-center justify-center gap-2"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-          </svg>
-          Log Work
-        </button>
-      </div>
+        </div>
+      </section>
     </div>
   )
 }
