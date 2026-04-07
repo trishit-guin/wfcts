@@ -8,7 +8,7 @@ export default defineConfig({
     allowedHosts: ['monte-nonlevulose-leticia.ngrok-free.dev','noneducationally-cosmogonal-vickey.ngrok-free.dev'],
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:3000',
         changeOrigin: true,
       },
     },
