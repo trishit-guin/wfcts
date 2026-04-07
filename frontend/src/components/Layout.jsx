@@ -7,7 +7,7 @@ function pageMeta(pathname, role) {
     '/dashboard': { eyebrow: 'Academic Staff Portal', title: 'Dashboard' },
     '/tasks': { eyebrow: 'Workflow Management', title: 'Tasks' },
     '/work-entry': { eyebrow: 'Record Activity', title: 'Log Work' },
-    '/credits': { eyebrow: 'Financial Overview', title: 'Credits' },
+    '/credits': { eyebrow: 'Credit Ledger', title: 'Credits' },
     '/timetable': { eyebrow: 'Academic Staff Portal', title: 'Timetable' },
     '/profile': { eyebrow: 'Account Settings', title: 'Profile' },
     '/industry-sessions': { eyebrow: 'Professional Outreach', title: 'Sessions' },
