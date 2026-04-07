@@ -6,6 +6,8 @@ services:
       - "3000:3000"
     env_file:
       - ./backend/.env
+    environment:
+      - PORT=3000
     volumes:
       - ./backend/public/uploads:/app/public/uploads
     restart: always
