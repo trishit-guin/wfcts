@@ -43,12 +43,14 @@ async function seedDatabase() {
 
       doc = await User.create(userData)
     } else {
-      // Update existing users with latest seed data
+      // Update existing users with latest seed data (except profile image if already set)
       doc.name = user.name
       doc.role = user.role
       doc.department = user.department
 
-      if (user.profileImage && user.profileImage.startsWith('data:')) {
+      // Only update profile image if it's currently empty
+      const hasImage = doc.profileImage && (doc.profileImage.data || Buffer.isBuffer(doc.profileImage))
+      if (!hasImage && user.profileImage && user.profileImage.startsWith('data:')) {
         const [meta, b64] = user.profileImage.split(';base64,')
         doc.profileImage = {
           data: Buffer.from(b64, 'base64'),

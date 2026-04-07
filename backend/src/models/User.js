@@ -46,9 +46,21 @@ userSchema.set('toJSON', {
     ret.id = String(ret._id)
     
     // Convert Buffer back to displayable Base64 string for frontend
-    if (ret.profileImage && ret.profileImage.data) {
-      const b64 = ret.profileImage.data.toString('base64')
-      ret.profileImage = `data:${ret.profileImage.contentType};base64,${b64}`
+    if (ret.profileImage && (ret.profileImage.data || Buffer.isBuffer(ret.profileImage))) {
+      let imageData = ret.profileImage.data || ret.profileImage
+      let contentType = ret.profileImage.contentType || 'image/png'
+      
+      // Handle Mongoose Buffer serialization
+      if (!Buffer.isBuffer(imageData) && imageData && imageData.type === 'Buffer') {
+        imageData = Buffer.from(imageData.data)
+      }
+      
+      if (Buffer.isBuffer(imageData)) {
+        const b64 = imageData.toString('base64')
+        ret.profileImage = `data:${contentType};base64,${b64}`
+      } else {
+        ret.profileImage = ''
+      }
     } else {
       ret.profileImage = ''
     }
