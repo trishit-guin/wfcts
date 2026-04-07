@@ -26,7 +26,8 @@ export default function AuthShell({
         <section className="wfcts-card w-full p-6 sm:p-8">
           <div className="mx-auto w-full max-w-md">
             <div className="flex items-center justify-between gap-3">
-              <Link to="/login" className="inline-flex items-center gap-3">
+              <Link to="/login" className="inline-flex items-center gap-2">
+                <img src="/logo.svg" alt="WFCTS Logo" className="h-8 w-8" />
                 <span className="font-headline text-2xl font-black tracking-[-0.08em] text-[var(--wfcts-primary)]">WFCTS</span>
               </Link>
               <span className="rounded-full bg-[var(--wfcts-primary)]/8 px-3 py-1 text-[0.62rem] font-bold uppercase tracking-[0.22em] text-[var(--wfcts-primary)]">

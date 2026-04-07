@@ -30,6 +30,10 @@ const industrySessionSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    proofUrl: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

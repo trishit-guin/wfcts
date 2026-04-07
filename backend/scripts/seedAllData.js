@@ -1,3 +1,4 @@
+require('dotenv').config()
 const mongoose = require('mongoose')
 
 const { connectToDatabase } = require('../src/config/db')
@@ -9,6 +10,8 @@ const Task = require('../src/models/Task')
 const IndustrySession = require('../src/models/IndustrySession')
 const { hashPassword } = require('../src/utils/password')
 
+const PLACEHOLDER_IMAGE_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA6uv6egAAAABJRU5ErkJggg=='
+
 const USERS = [
   {
     key: 'ananya',
@@ -17,6 +20,7 @@ const USERS = [
     password: 'teacher123',
     role: 'TEACHER',
     department: 'Computer Science',
+    profileImage: PLACEHOLDER_IMAGE_B64,
   },
   {
     key: 'neha',
@@ -25,6 +29,7 @@ const USERS = [
     password: 'teacher123',
     role: 'TEACHER',
     department: 'Computer Science',
+    profileImage: PLACEHOLDER_IMAGE_B64,
   },
   {
     key: 'arjun',
@@ -33,6 +38,7 @@ const USERS = [
     password: 'teacher123',
     role: 'TEACHER',
     department: 'Computer Science',
+    profileImage: PLACEHOLDER_IMAGE_B64,
   },
   {
     key: 'admin',
@@ -41,6 +47,7 @@ const USERS = [
     password: 'admin123',
     role: 'ADMIN',
     department: 'Administration',
+    profileImage: PLACEHOLDER_IMAGE_B64,
   },
   {
     key: 'hod',
@@ -49,6 +56,7 @@ const USERS = [
     password: 'hod123',
     role: 'HOD',
     department: 'Computer Science',
+    profileImage: PLACEHOLDER_IMAGE_B64,
   },
 ]
 
@@ -72,17 +80,36 @@ async function ensureUsers() {
     let doc = await User.findOne({ email: user.email })
 
     if (!doc) {
-      doc = await User.create({
+      const userData = {
         name: user.name,
         email: user.email,
         passwordHash: hashPassword(user.password),
         role: user.role,
         department: user.department,
-      })
+      }
+
+      if (user.profileImage && user.profileImage.startsWith('data:')) {
+        const [meta, b64] = user.profileImage.split(';base64,')
+        userData.profileImage = {
+          data: Buffer.from(b64, 'base64'),
+          contentType: meta.split(':')[1],
+        }
+      }
+
+      doc = await User.create(userData)
     } else {
       doc.name = user.name
       doc.role = user.role
       doc.department = user.department
+
+      if (user.profileImage && user.profileImage.startsWith('data:')) {
+        const [meta, b64] = user.profileImage.split(';base64,')
+        doc.profileImage = {
+          data: Buffer.from(b64, 'base64'),
+          contentType: meta.split(':')[1],
+        }
+      }
+
       await doc.save()
     }
 
@@ -185,6 +212,7 @@ function buildDailyData(teacherIds, start, days) {
         date,
         proofUploaded: i % 4 === 0,
         proofName: i % 4 === 0 ? `session-proof-day-${i + 1}.pdf` : '',
+        proofUrl: i % 4 === 0 ? `https://images.unsplash.com/photo-${1500000000000 + i}?w=800&auto=format&fit=crop&q=60` : '',
       })
     }
 

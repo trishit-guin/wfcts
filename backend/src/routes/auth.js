@@ -4,8 +4,27 @@ const { requireAuth } = require('../middleware/auth')
 const User = require('../models/User')
 const { hashPassword, verifyPassword } = require('../utils/password')
 const { createToken } = require('../utils/token')
+const multer = require('multer')
+const path = require('path')
 
 const router = express.Router()
+
+const storage = multer.memoryStorage()
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+  fileFilter: (_req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|webp/
+    const mimetype = filetypes.test(file.mimetype)
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase())
+
+    if (mimetype && extname) {
+      return cb(null, true)
+    }
+    cb(new Error('Only images (jpeg, jpg, png, webp) are allowed'))
+  },
+})
 
 router.post('/signup', async (req, res, next) => {
   try {
@@ -84,6 +103,28 @@ router.post('/login', async (req, res, next) => {
 
 router.get('/me', requireAuth, async (req, res) => {
   res.json({ user: req.user.toJSON() })
+})
+
+router.post('/me/image', requireAuth, upload.single('image'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      const error = new Error('No image file provided')
+      error.statusCode = 400
+      throw error
+    }
+
+    // Store raw binary data and content type
+    req.user.profileImage = {
+      data: req.file.buffer,
+      contentType: req.file.mimetype,
+    }
+    
+    await req.user.save()
+
+    res.json({ user: req.user.toJSON() })
+  } catch (error) {
+    next(error)
+  }
 })
 
 router.patch('/me', requireAuth, async (req, res, next) => {

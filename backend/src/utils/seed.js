@@ -19,23 +19,54 @@ function asDate(value) {
 }
 
 async function seedDatabase() {
-  const existingUsers = await User.countDocuments()
+  const usersByEmail = new Map()
 
-  if (existingUsers > 0) {
-    return
+  for (const user of seedUsers) {
+    let doc = await User.findOne({ email: user.email })
+
+    if (!doc) {
+      const userData = {
+        name: user.name,
+        email: user.email,
+        passwordHash: hashPassword(user.password),
+        role: user.role,
+        department: user.department,
+      }
+
+      if (user.profileImage && user.profileImage.startsWith('data:')) {
+        const [meta, b64] = user.profileImage.split(';base64,')
+        userData.profileImage = {
+          data: Buffer.from(b64, 'base64'),
+          contentType: meta.split(':')[1],
+        }
+      }
+
+      doc = await User.create(userData)
+    } else {
+      // Update existing users with latest seed data
+      doc.name = user.name
+      doc.role = user.role
+      doc.department = user.department
+
+      if (user.profileImage && user.profileImage.startsWith('data:')) {
+        const [meta, b64] = user.profileImage.split(';base64,')
+        doc.profileImage = {
+          data: Buffer.from(b64, 'base64'),
+          contentType: meta.split(':')[1],
+        }
+      }
+
+      await doc.save()
+    }
+    usersByEmail.set(user.email, doc)
   }
 
-  const users = await User.insertMany(
-    seedUsers.map((user) => ({
-      name: user.name,
-      email: user.email,
-      passwordHash: hashPassword(user.password),
-      role: user.role,
-      department: user.department,
-    })),
-  )
-
-  const usersByEmail = new Map(users.map((user) => [user.email, user]))
+  // Check if we need to seed other data (only if work entries are empty)
+  const existingWork = await WorkEntry.countDocuments()
+  if (existingWork > 0) {
+    console.log('Users updated, skipping other seed data as it already exists')
+    return
+  }
 
   await WorkEntry.insertMany(
     seedWorkEntries.map((entry) => ({
@@ -94,6 +125,7 @@ async function seedDatabase() {
       date: asDate(session.date),
       proofUploaded: session.proofUploaded,
       proofName: session.proofName,
+      proofUrl: session.proofUrl || '',
     })),
   )
 

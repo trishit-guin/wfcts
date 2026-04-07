@@ -1,6 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { getCurrentUserRequest, loginRequest, signupRequest, updateCurrentUserRequest } from '../utils/api'
+import {
+  getCurrentUserRequest,
+  loginRequest,
+  signupRequest,
+  updateCurrentUserRequest,
+  uploadProfileImageRequest,
+} from '../utils/api'
 
 const AuthContext = createContext(null)
 
@@ -114,9 +120,30 @@ export function AuthProvider({ children }) {
     return response.user
   }, [token])
 
+  const uploadProfileImage = useCallback(async (file) => {
+    if (!token) {
+      throw new Error('You are not logged in')
+    }
+
+    const response = await uploadProfileImageRequest(token, file)
+    persistSession(response.user, token)
+    setUser(response.user)
+    return response.user
+  }, [token])
+
   const value = useMemo(
-    () => ({ user, token, isAuthenticated, authReady, login, signup, logout, updateProfile }),
-    [user, token, isAuthenticated, authReady, login, signup, logout, updateProfile],
+    () => ({
+      user,
+      token,
+      isAuthenticated,
+      authReady,
+      login,
+      signup,
+      logout,
+      updateProfile,
+      uploadProfileImage,
+    }),
+    [user, token, isAuthenticated, authReady, login, signup, logout, updateProfile, uploadProfileImage],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

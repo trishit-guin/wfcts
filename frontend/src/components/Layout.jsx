@@ -53,8 +53,11 @@ export default function Layout({ children }) {
                 {meta.eyebrow}
               </p>
               <div className="flex items-center gap-3">
-                <Link to="/" className="font-headline text-lg font-extrabold tracking-[-0.04em] text-[var(--wfcts-primary)] sm:text-xl">
-                  WFCTS
+                <Link to="/" className="flex items-center gap-2">
+                  <img src="/logo.svg" alt="WFCTS Logo" className="h-8 w-8" />
+                  <span className="font-headline text-lg font-extrabold tracking-[-0.04em] text-[var(--wfcts-primary)] sm:text-xl">
+                    WFCTS
+                  </span>
                 </Link>
                 <span className="hidden text-sm font-medium text-slate-400 sm:inline">/</span>
                 <span className="hidden truncate text-sm font-semibold text-slate-600 sm:inline">{meta.title}</span>
@@ -77,8 +80,12 @@ export default function Layout({ children }) {
                 <p className="max-w-[12rem] truncate text-sm font-semibold text-slate-800">{user?.name || 'Faculty Member'}</p>
                 <p className="text-xs text-[var(--wfcts-muted)]">View profile</p>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[var(--wfcts-primary)] to-[var(--wfcts-secondary)] text-sm font-bold text-white shadow-lg shadow-[var(--wfcts-primary)]/20">
-                {userInitials(user?.name)}
+              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[var(--wfcts-primary)] to-[var(--wfcts-secondary)] text-sm font-bold text-white shadow-lg shadow-[var(--wfcts-primary)]/20">
+                {user?.profileImage ? (
+                  <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
+                ) : (
+                  userInitials(user?.name)
+                )}
               </div>
             </Link>
           </div>

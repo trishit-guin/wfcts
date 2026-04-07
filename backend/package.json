@@ -4,10 +4,10 @@
   "description": "WFCTS backend API",
   "main": "index.js",
   "scripts": {
-    "dev": "node --watch --env-file=.env server.js",
-    "start": "node --env-file=.env server.js",
-    "seed:all": "node --env-file=.env scripts/seedAllData.js",
-    "seed:all:10": "node --env-file=.env scripts/seedAllData.js --days=10",
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "seed:all": "node scripts/seedAllData.js",
+    "seed:all:10": "node scripts/seedAllData.js --days=10",
     "test": "echo \"No backend tests configured yet\""
   },
   "keywords": [],
@@ -16,8 +16,10 @@
   "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^9.3.1"
+    "mongoose": "^9.3.1",
+    "multer": "^2.1.1"
   }
 }

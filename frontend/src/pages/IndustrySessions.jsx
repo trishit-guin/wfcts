@@ -2,12 +2,24 @@ import { useState } from 'react'
 import { useWFCTS } from '../context/WFCTSContext'
 import { formatDate } from '../utils/formatDate'
 
-function ProofBadge({ uploaded, name }) {
+function ProofBadge({ uploaded, name, url }) {
   if (uploaded) {
     return (
-      <span className="text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
-        Uploaded{name ? `: ${name}` : ''}
-      </span>
+      <div className="flex flex-col items-end gap-1">
+        <span className="text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
+          Uploaded{name ? `: ${name}` : ''}
+        </span>
+        {url && (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-emerald-600 underline hover:text-emerald-800"
+          >
+            View Proof
+          </a>
+        )}
+      </div>
     )
   }
 
@@ -182,7 +194,7 @@ export default function IndustrySessions() {
               <div className="flex items-start justify-between gap-3">
                 <h3 className="text-sm sm:text-base font-bold text-gray-900">{session.title}</h3>
                 <div className="flex flex-col items-end gap-1.5">
-                  <ProofBadge uploaded={session.proofUploaded} name={session.proofName} />
+                  <ProofBadge uploaded={session.proofUploaded} name={session.proofName} url={session.proofUrl} />
                   <button
                     type="button"
                     onClick={() => startEdit(session)}

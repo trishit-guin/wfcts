@@ -1,10 +1,23 @@
-const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
+const API_BASE_URL = (() => {
+  const envUrl = import.meta.env.VITE_API_URL
+  if (envUrl) return envUrl.replace(/\/$/, '')
+
+  // In production, default to relative /api to let Nginx proxy handle it
+  if (import.meta.env.PROD) {
+    return '/api'
+  }
+
+  // In development, Vite proxy handles /api
+  return '/api'
+})()
 
 async function apiRequest(path, options = {}) {
   const { method = 'GET', token = '', body } = options
   const headers = {}
 
-  if (body !== undefined) {
+  const isFormData = body instanceof FormData
+
+  if (body !== undefined && !isFormData) {
     headers['Content-Type'] = 'application/json'
   }
 
@@ -17,7 +30,7 @@ async function apiRequest(path, options = {}) {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? (isFormData ? body : JSON.stringify(body)) : undefined,
     })
   } catch {
     throw new Error('Unable to reach the backend API. Make sure the backend server is running.')
@@ -58,6 +71,17 @@ export function updateCurrentUserRequest(token, payload) {
     method: 'PATCH',
     token,
     body: payload,
+  })
+}
+
+export function uploadProfileImageRequest(token, file) {
+  const formData = new FormData()
+  formData.append('image', file)
+
+  return apiRequest('/auth/me/image', {
+    method: 'POST',
+    token,
+    body: formData,
   })
 }
 

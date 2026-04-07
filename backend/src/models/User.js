@@ -30,6 +30,10 @@ const userSchema = new mongoose.Schema(
       enum: allowedRoles,
       required: true,
     },
+    profileImage: {
+      data: Buffer,
+      contentType: String,
+    },
   },
   {
     timestamps: true,
@@ -40,6 +44,15 @@ userSchema.set('toJSON', {
   versionKey: false,
   transform: (_doc, ret) => {
     ret.id = String(ret._id)
+    
+    // Convert Buffer back to displayable Base64 string for frontend
+    if (ret.profileImage && ret.profileImage.data) {
+      const b64 = ret.profileImage.data.toString('base64')
+      ret.profileImage = `data:${ret.profileImage.contentType};base64,${b64}`
+    } else {
+      ret.profileImage = ''
+    }
+
     delete ret._id
     delete ret.passwordHash
     return ret

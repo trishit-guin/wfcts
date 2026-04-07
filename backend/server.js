@@ -1,5 +1,7 @@
+require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
+const path = require('path')
 
 const { connectToDatabase } = require('./src/config/db')
 const { seedDatabase } = require('./src/utils/seed')

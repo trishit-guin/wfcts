@@ -39,9 +39,10 @@ function StatCard({ label, value, tone }) {
 }
 
 export default function Profile() {
-  const { user, logout, updateProfile } = useAuth()
+  const { user, logout, updateProfile, uploadProfileImage } = useAuth()
   const { workEntries, substituteEntries, tasks, industrySessions } = useWFCTS()
   const [showEdit, setShowEdit] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [form, setForm] = useState({
     name: user?.name || '',
     department: user?.department || '',
@@ -65,6 +66,24 @@ export default function Profile() {
     setForm((prev) => ({ ...prev, [field]: value }))
     if (error) setError('')
     if (message) setMessage('')
+  }
+
+  async function onImageChange(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setError('')
+    setMessage('')
+    setIsUploading(true)
+
+    try {
+      await uploadProfileImage(file)
+      setMessage('Profile image updated successfully.')
+    } catch (uploadError) {
+      setError(uploadError.message || 'Unable to upload profile image.')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   async function onSubmit(event) {
@@ -148,8 +167,20 @@ export default function Profile() {
             <div className="absolute right-[-12%] top-[-16%] h-48 w-48 rounded-full bg-white/8 blur-3xl" />
             <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-5">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/15 text-2xl font-bold shadow-lg shadow-black/10">
-                  {userInitials(user?.name)}
+                <div className="group relative">
+                  <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-white/15 shadow-lg shadow-black/10 ring-4 ring-white/10">
+                    {user?.profileImage ? (
+                      <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-3xl font-bold">{userInitials(user?.name)}</span>
+                    )}
+                  </div>
+                  <label className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                    <input type="file" className="hidden" accept="image/*" onChange={onImageChange} disabled={isUploading} />
+                    <span className="material-symbols-outlined text-white">
+                      {isUploading ? 'progress_activity' : 'photo_camera'}
+                    </span>
+                  </label>
                 </div>
                 <div>
                   <p className="text-[0.68rem] font-bold uppercase tracking-[0.22em] text-blue-100">

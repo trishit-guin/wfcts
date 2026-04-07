@@ -1,3 +1,5 @@
+const PLACEHOLDER_IMAGE_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA6uv6egAAAABJRU5ErkJggg=='
+
 const seedUsers = [
   {
     name: 'Prof. Ananya Sharma',
@@ -5,6 +7,7 @@ const seedUsers = [
     password: 'teacher123',
     role: 'TEACHER',
     department: 'Computer Science',
+    profileImage: PLACEHOLDER_IMAGE_B64,
   },
   {
     name: 'Prof. Neha Joshi',
@@ -12,6 +15,7 @@ const seedUsers = [
     password: 'teacher123',
     role: 'TEACHER',
     department: 'Computer Science',
+    profileImage: PLACEHOLDER_IMAGE_B64,
   },
   {
     name: 'Prof. Arjun Mehta',
@@ -19,6 +23,7 @@ const seedUsers = [
     password: 'teacher123',
     role: 'TEACHER',
     department: 'Computer Science',
+    profileImage: PLACEHOLDER_IMAGE_B64,
   },
   {
     name: 'Admin User',
@@ -26,6 +31,7 @@ const seedUsers = [
     password: 'admin123',
     role: 'ADMIN',
     department: 'Administration',
+    profileImage: PLACEHOLDER_IMAGE_B64,
   },
   {
     name: 'Dr. N. Verma',
@@ -33,6 +39,7 @@ const seedUsers = [
     password: 'hod123',
     role: 'HOD',
     department: 'Computer Science',
+    profileImage: PLACEHOLDER_IMAGE_B64,
   },
 ]
 
@@ -319,6 +326,7 @@ const seedIndustrySessions = [
     date: '2026-03-05',
     proofUploaded: true,
     proofName: 'genai-session-proof.pdf',
+    proofUrl: 'https://images.unsplash.com/photo-1591115765373-520b7a217157?w=800&auto=format&fit=crop&q=60',
   },
   {
     teacherEmail: 'teacher@wfcts.edu',
@@ -327,6 +335,7 @@ const seedIndustrySessions = [
     date: '2026-02-22',
     proofUploaded: false,
     proofName: '',
+    proofUrl: '',
   },
   {
     teacherEmail: 'neha@wfcts.edu',
@@ -335,6 +344,7 @@ const seedIndustrySessions = [
     date: '2026-03-01',
     proofUploaded: true,
     proofName: 'industry4-proof.png',
+    proofUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop&q=60',
   },
 ]
 

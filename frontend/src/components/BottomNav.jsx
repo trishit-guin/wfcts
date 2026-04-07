@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 function getInitials(name) {
@@ -133,9 +133,9 @@ export default function BottomNav() {
     <>
       <aside className="fixed left-6 top-1/2 z-50 hidden -translate-y-1/2 xl:flex">
         <div className="flex flex-col items-center gap-5 rounded-[2rem] border border-white/70 bg-white/85 px-3 py-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
-          <div className="flex h-14 w-14 items-center justify-center rounded-[1.3rem] bg-[var(--wfcts-primary)] text-xl font-black text-white shadow-lg shadow-[var(--wfcts-primary)]/20">
-            W
-          </div>
+          <Link to="/" className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-[1.3rem] bg-[var(--wfcts-primary)] shadow-lg shadow-[var(--wfcts-primary)]/20">
+            <img src="/logo.svg" alt="WFCTS" className="h-full w-full p-2.5" />
+          </Link>
           <div className="flex flex-col gap-3">
             {navItems.map((item) => (
               <NavItem key={item.to} item={item} />
@@ -152,12 +152,16 @@ export default function BottomNav() {
             }
           >
             {({ isActive }) => (
-              <div className={`flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold ${
+              <div className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-[0.7rem] font-bold shadow-sm transition-transform active:scale-95 ${
                 isActive
                   ? 'bg-[var(--wfcts-secondary)] text-white'
                   : 'bg-slate-200 text-slate-600'
               }`}>
-                {getInitials(user?.name)}
+                {user?.profileImage ? (
+                  <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
+                ) : (
+                  getInitials(user?.name)
+                )}
               </div>
             )}
           </NavLink>
