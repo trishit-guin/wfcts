@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "node --watch --env-file=.env server.js",
     "start": "node --env-file=.env server.js",
+    "seed:all": "node --env-file=.env scripts/seedAllData.js",
+    "seed:all:10": "node --env-file=.env scripts/seedAllData.js --days=10",
     "test": "echo \"No backend tests configured yet\""
   },
   "keywords": [],
