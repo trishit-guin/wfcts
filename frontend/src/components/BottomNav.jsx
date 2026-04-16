@@ -19,68 +19,27 @@ function SymbolIcon({ name, active = false, className = '' }) {
 }
 
 const teacherNavItems = [
-  {
-    to: '/dashboard',
-    label: 'Dashboard',
-    icon: 'dashboard',
-  },
-  {
-    to: '/tasks',
-    label: 'Tasks',
-    icon: 'assignment_turned_in',
-  },
-  {
-    to: '/work-entry',
-    label: 'Log Work',
-    icon: 'add_circle',
-  },
-  {
-    to: '/credits',
-    label: 'Credits',
-    icon: 'payments',
-  },
-  {
-    to: '/timetable',
-    label: 'Slots',
-    icon: 'calendar_view_week',
-  },
+  { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { to: '/tasks', label: 'Tasks', icon: 'assignment_turned_in' },
+  { to: '/calendar', label: 'Calendar', icon: 'calendar_month' },
+  { to: '/credits', label: 'Credits', icon: 'payments' },
+  { to: '/timetable', label: 'Slots', icon: 'calendar_view_week' },
 ]
 
 const adminNavItems = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard' },
-  {
-    to: '/assign-task',
-    label: 'Assign',
-    icon: 'task_alt',
-  },
-  {
-    to: '/fairness',
-    label: 'Fairness',
-    icon: 'balance',
-  },
-  {
-    to: '/timetable',
-    label: 'Slots',
-    icon: 'calendar_view_week',
-  },
+  { to: '/assign-task', label: 'Assign', icon: 'task_alt' },
+  { to: '/calendar', label: 'Calendar', icon: 'calendar_month' },
+  { to: '/fairness', label: 'Fairness', icon: 'balance' },
+  { to: '/timetable', label: 'Slots', icon: 'calendar_view_week' },
 ]
+
 const hodNavItems = [
   { to: '/hod/dashboard', label: 'Dashboard', icon: 'dashboard' },
-  {
-    to: '/assign-task',
-    label: 'Assign',
-    icon: 'task_alt',
-  },
-  {
-    to: '/fairness',
-    label: 'Fairness',
-    icon: 'balance',
-  },
-  {
-    to: '/timetable',
-    label: 'Slots',
-    icon: 'calendar_view_week',
-  },
+  { to: '/assign-task', label: 'Assign', icon: 'task_alt' },
+  { to: '/calendar', label: 'Calendar', icon: 'calendar_month' },
+  { to: '/fairness', label: 'Fairness', icon: 'balance' },
+  { to: '/timetable', label: 'Slots', icon: 'calendar_view_week' },
 ]
 
 function NavItem({ item, mobile = false }) {

@@ -1,6 +1,6 @@
 # WFCTS Project Context
 
-Last updated: 2026-04-07 (frontend redesign across auth, teacher, admin, and HOD views)
+Last updated: 2026-04-16 (Work Scheduling Engine + Calendar UI added)
 Workspace root: D:/inhouse/wfcts
 
 ## Project Snapshot
@@ -21,6 +21,7 @@ Current implementation status:
 - chain settlement recommendations are computed server-side
 - recurring weekly timetable slots are supported
 - free-teacher suggestions are automatic from timetable overlap rules
+- Work Scheduling Engine with Calendar UI is implemented (CalendarEvent model, week/month view, fairness weights, delegation, substitution linkage, auto WorkEntry on completion)
 
 ## Stack and Tooling
 Frontend:
@@ -69,6 +70,7 @@ Public API routes:
 Protected data API routes:
 - GET /api/data/bootstrap
 - GET /api/data/teachers
+- GET /api/data/managers
 - POST /api/data/work-entries
 - POST /api/data/substitute-entries
 - GET /api/data/substitute-settlements
@@ -80,6 +82,14 @@ Protected data API routes:
 - POST /api/data/tasks
 - PATCH /api/data/tasks/:taskId/complete
 - POST /api/data/industry-sessions
+- GET /api/data/calendar-events (supports ?startDate, ?endDate, ?teacherId)
+- POST /api/data/calendar-events
+- PATCH /api/data/calendar-events/:id
+- PATCH /api/data/calendar-events/:id/approve (ADMIN/HOD only)
+- PATCH /api/data/calendar-events/:id/reject (ADMIN/HOD only)
+- PATCH /api/data/calendar-events/:id/complete (auto-creates WorkEntry)
+- PATCH /api/data/calendar-events/:id/substitute (auto-creates SubstituteEntry pair + new CalendarEvent)
+- PATCH /api/data/calendar-events/:id/cancel
 
 Seed behavior:
 - backend seeds users, work entries, substitute entries, timetable slots, tasks, and industry sessions when DB has no users
@@ -155,6 +165,7 @@ Admin + HOD:
 All authenticated roles:
 - /subject-hours
 - /timetable
+- /calendar
 - /profile
 
 Fallback:
@@ -166,19 +177,21 @@ Source: frontend/src/components/BottomNav.jsx
 Teacher tabs:
 - Dashboard
 - Tasks
-- Log Work
+- Calendar
 - Credits
 - Slots
 
 Admin tabs:
 - Dashboard
 - Assign
+- Calendar
 - Fairness
 - Slots
 
 HOD tabs:
 - Dashboard
 - Assign
+- Calendar
 - Fairness
 - Slots
 
@@ -196,6 +209,7 @@ Key collections/models:
 - TeacherTimetable
 - Task
 - IndustrySession
+- CalendarEvent
 
 User fields:
 - name
@@ -251,6 +265,34 @@ Timetable note:
 - there is no active/inactive flag anymore
 - if a slot exists, it is always considered active
 
+CalendarEvent fields:
+- title, description
+- date (Date), startTime (HH:MM), endTime (HH:MM)
+- eventType: LECTURE | LAB | ADMIN | EXTRA_DUTY | MEETING | SUBSTITUTE_COVER
+- fairnessWeight: stored at creation (1.0 / 1.2 / 0.8 / 1.5 / 0.5 / 2.0)
+- assignedTo (ref User) – who does the work
+- createdBy (ref User) – who scheduled it
+- onBehalfOf (ref User) – set when teacher delegates for manager
+- status: SCHEDULED | PENDING_APPROVAL | COMPLETED | CANCELLED | SUBSTITUTED
+- subject, className, location
+- linkedWorkEntryId – auto-created when marked COMPLETED
+- linkedSubstituteEntryId – auto-created when substituted
+- originalEventId – set on sub-cover events pointing back to original
+- linkedTaskId – optional task linkage
+
+CalendarEvent engine rules:
+- Teacher creating for themselves → status=SCHEDULED
+- Teacher creating for a manager → status=PENDING_APPROVAL (manager must approve)
+- Manager creating for anyone → status=SCHEDULED
+- COMPLETED action → auto-creates WorkEntry (hours from time diff, workType mapped from eventType)
+- SUBSTITUTE action → auto-creates paired SubstituteEntry (CREDIT for sub, SUBSTITUTION for original) + new CalendarEvent(SUBSTITUTE_COVER) for substitute teacher; feeds settlement engine automatically
+
+Fairness weight mapping:
+- LECTURE: 1.0, LAB: 1.2, ADMIN: 0.8, EXTRA_DUTY: 1.5, MEETING: 0.5, SUBSTITUTE_COVER: 2.0
+
+WorkType mapping from CalendarEvent → WorkEntry:
+- LECTURE→Lecture, LAB→Lab, ADMIN→Admin, EXTRA_DUTY→Extra Duty, MEETING→Admin, SUBSTITUTE_COVER→Lecture
+
 ## WFCTSContext Data Model
 Source: frontend/src/context/WFCTSContext.jsx
 
@@ -262,6 +304,7 @@ State slices:
 - industrySessions
 - timetableSlots
 - availableTeachers
+- calendarEvents
 - settlementPlan
 - isLoading
 - error
@@ -277,6 +320,14 @@ Current action functions:
 - deleteTimetableSlot(slotId)
 - refreshTimetableSlots(filters)
 - fetchAvailableTeachers(query)
+- fetchCalendarEvents(params) – params: startDate, endDate, teacherId
+- addCalendarEvent(payload)
+- updateCalendarEvent(id, payload)
+- approveCalendarEvent(id)
+- rejectCalendarEvent(id)
+- completeCalendarEvent(id) – also updates workEntries slice
+- substituteCalendarEvent(id, substituteTeacherId) – also updates substituteEntries + refreshes settlement
+- cancelCalendarEvent(id)
 - refreshData()
 - refreshSettlementPlan()
 
@@ -393,6 +444,19 @@ Credits page integration:
 - redesigned timetable with day tabs, inline add-slot action, and richer slot cards
 - teacher self-management and admin/HOD cross-teacher management
 
+15. Calendar / Work Scheduling Engine (frontend/src/pages/Calendar.jsx)
+- week grid (07:00-21:00, 64px/hr, current-time indicator)
+- mini month calendar sidebar with event-dot indicators
+- timetable slots rendered as read-only grey overlays
+- event types: LECTURE, LAB, ADMIN, EXTRA_DUTY, MEETING, SUBSTITUTE_COVER
+- fairness weight shown per event (0.5×–2.0×)
+- create/edit modal with delegation toggle (teacher schedules for manager)
+- delegation creates PENDING_APPROVAL event; manager approves/rejects from drawer
+- complete action auto-creates WorkEntry and links it
+- substitute action auto-creates SubstituteEntry pair + new SUBSTITUTE_COVER CalendarEvent; feeds settlement engine
+- event detail drawer with approve/reject/complete/sub/cancel actions
+- role-aware visibility: teachers see own events, managers see all
+
 ## Current UX and Design Conventions
 - light-mode branded system aligned to DESIGN.md
 - Manrope headlines and Inter body/label typography
@@ -441,6 +505,7 @@ Backend models:
 - backend/src/models/TeacherTimetable.js
 - backend/src/models/Task.js
 - backend/src/models/IndustrySession.js
+- backend/src/models/CalendarEvent.js (exports CalendarEvent, FAIRNESS_WEIGHTS, EVENT_WORK_TYPE_MAP)
 
 Pages:
 - frontend/src/pages/Login.jsx
@@ -457,6 +522,7 @@ Pages:
 - frontend/src/pages/AdminDashboard.jsx
 - frontend/src/pages/HodDashboard.jsx
 - frontend/src/pages/Timetable.jsx
+- frontend/src/pages/Calendar.jsx
 
 Utilities:
 - frontend/src/utils/api.js
@@ -478,3 +544,7 @@ Runtime and setup:
 4. Add automated tests for auth, role guards, timetable overlap validation, and settlement correctness.
 5. Add date-specific timetable override support (holidays/exams) on top of weekly slots.
 6. Consider hour-weighted settlement instead of entry-count settlement.
+7. Add conflict detection for CalendarEvents (warn if teacher already has a slot at that time).
+8. Show upcoming calendar events on the teacher Dashboard.
+9. Add iCal (.ics) export for CalendarEvents (no external dependency needed).
+10. Add CalendarEvent seeding to the seed script for demo data.

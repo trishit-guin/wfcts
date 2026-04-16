@@ -209,3 +209,52 @@ export function updateIndustrySessionRequest(token, sessionId, payload) {
     body: payload,
   })
 }
+
+// ─── Managers ─────────────────────────────────────────────────────────────────
+
+export function getManagersRequest(token) {
+  return apiRequest('/data/managers', { token })
+}
+
+// ─── Calendar Events ──────────────────────────────────────────────────────────
+
+export function getCalendarEventsRequest(token, params = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') query.set(k, String(v))
+  })
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  return apiRequest(`/data/calendar-events${suffix}`, { token })
+}
+
+export function createCalendarEventRequest(token, payload) {
+  return apiRequest('/data/calendar-events', { method: 'POST', token, body: payload })
+}
+
+export function updateCalendarEventRequest(token, id, payload) {
+  return apiRequest(`/data/calendar-events/${id}`, { method: 'PATCH', token, body: payload })
+}
+
+export function approveCalendarEventRequest(token, id) {
+  return apiRequest(`/data/calendar-events/${id}/approve`, { method: 'PATCH', token })
+}
+
+export function rejectCalendarEventRequest(token, id) {
+  return apiRequest(`/data/calendar-events/${id}/reject`, { method: 'PATCH', token })
+}
+
+export function completeCalendarEventRequest(token, id) {
+  return apiRequest(`/data/calendar-events/${id}/complete`, { method: 'PATCH', token })
+}
+
+export function substituteCalendarEventRequest(token, id, substituteTeacherId) {
+  return apiRequest(`/data/calendar-events/${id}/substitute`, {
+    method: 'PATCH',
+    token,
+    body: { substituteTeacherId },
+  })
+}
+
+export function cancelCalendarEventRequest(token, id) {
+  return apiRequest(`/data/calendar-events/${id}/cancel`, { method: 'PATCH', token })
+}

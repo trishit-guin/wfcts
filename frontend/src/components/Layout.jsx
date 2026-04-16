@@ -9,6 +9,7 @@ function pageMeta(pathname, role) {
     '/work-entry': { eyebrow: 'Record Activity', title: 'Log Work' },
     '/credits': { eyebrow: 'Credit Ledger', title: 'Credits' },
     '/timetable': { eyebrow: 'Academic Staff Portal', title: 'Timetable' },
+    '/calendar': { eyebrow: 'Work Scheduling Engine', title: 'Calendar' },
     '/profile': { eyebrow: 'Account Settings', title: 'Profile' },
     '/industry-sessions': { eyebrow: 'Professional Outreach', title: 'Sessions' },
     '/subject-hours': { eyebrow: 'Academic Planning', title: 'Subject Hours' },

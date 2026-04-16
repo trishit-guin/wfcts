@@ -17,6 +17,14 @@ import {
   updateTaskRequest,
   updateTimetableSlotRequest,
   updateWorkEntryRequest,
+  getCalendarEventsRequest,
+  createCalendarEventRequest,
+  updateCalendarEventRequest,
+  approveCalendarEventRequest,
+  rejectCalendarEventRequest,
+  completeCalendarEventRequest,
+  substituteCalendarEventRequest,
+  cancelCalendarEventRequest,
 } from '../utils/api'
 import { useAuth } from './AuthContext'
 
@@ -30,6 +38,7 @@ const initialState = {
   industrySessions: [],
   timetableSlots: [],
   availableTeachers: [],
+  calendarEvents: [],
   settlementPlan: {
     generatedAt: '',
     totalPendingLinkedCredits: 0,
@@ -48,6 +57,7 @@ export function WFCTSProvider({ children }) {
   const [industrySessions, setIndustrySessions] = useState(initialState.industrySessions)
   const [timetableSlots, setTimetableSlots] = useState(initialState.timetableSlots)
   const [availableTeachers, setAvailableTeachers] = useState(initialState.availableTeachers)
+  const [calendarEvents, setCalendarEvents] = useState(initialState.calendarEvents)
   const [settlementPlan, setSettlementPlan] = useState(initialState.settlementPlan)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -60,6 +70,7 @@ export function WFCTSProvider({ children }) {
     setIndustrySessions(initialState.industrySessions)
     setTimetableSlots(initialState.timetableSlots)
     setAvailableTeachers(initialState.availableTeachers)
+    setCalendarEvents(initialState.calendarEvents)
     setSettlementPlan(initialState.settlementPlan)
   }, [])
 
@@ -208,6 +219,73 @@ export function WFCTSProvider({ children }) {
     return response.availableTeachers || []
   }, [token])
 
+  // ─── Calendar Events ────────────────────────────────────────────────────────
+
+  const sortEvents = (events) =>
+    [...events].sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
+
+  const fetchCalendarEvents = useCallback(async (params = {}) => {
+    const response = await getCalendarEventsRequest(token, params)
+    const events = response.calendarEvents || []
+    setCalendarEvents(sortEvents(events))
+    return events
+  }, [token])
+
+  const addCalendarEvent = useCallback(async (payload) => {
+    const response = await createCalendarEventRequest(token, payload)
+    setCalendarEvents((prev) => sortEvents([...prev, response.calendarEvent]))
+    return response.calendarEvent
+  }, [token])
+
+  const updateCalendarEvent = useCallback(async (id, payload) => {
+    const response = await updateCalendarEventRequest(token, id, payload)
+    setCalendarEvents((prev) => prev.map((e) => (e.id === id ? response.calendarEvent : e)))
+    return response.calendarEvent
+  }, [token])
+
+  const approveCalendarEvent = useCallback(async (id) => {
+    const response = await approveCalendarEventRequest(token, id)
+    setCalendarEvents((prev) => prev.map((e) => (e.id === id ? response.calendarEvent : e)))
+    return response.calendarEvent
+  }, [token])
+
+  const rejectCalendarEvent = useCallback(async (id) => {
+    const response = await rejectCalendarEventRequest(token, id)
+    setCalendarEvents((prev) => prev.map((e) => (e.id === id ? response.calendarEvent : e)))
+    return response.calendarEvent
+  }, [token])
+
+  const completeCalendarEvent = useCallback(async (id) => {
+    const response = await completeCalendarEventRequest(token, id)
+    setCalendarEvents((prev) => prev.map((e) => (e.id === id ? response.calendarEvent : e)))
+    if (response.workEntry) {
+      setWorkEntries((prev) => [response.workEntry, ...prev])
+    }
+    return response
+  }, [token])
+
+  const substituteCalendarEvent = useCallback(async (id, substituteTeacherId) => {
+    const response = await substituteCalendarEventRequest(token, id, substituteTeacherId)
+    setCalendarEvents((prev) => {
+      const updated = prev.map((e) => (e.id === id ? response.calendarEvent : e))
+      if (response.substituteEvent) {
+        updated.push(response.substituteEvent)
+      }
+      return sortEvents(updated)
+    })
+    if (response.substituteEntry) {
+      setSubstituteEntries((prev) => [response.substituteEntry, ...prev])
+      await refreshSettlementPlan()
+    }
+    return response
+  }, [token, refreshSettlementPlan])
+
+  const cancelCalendarEvent = useCallback(async (id) => {
+    const response = await cancelCalendarEventRequest(token, id)
+    setCalendarEvents((prev) => prev.map((e) => (e.id === id ? response.calendarEvent : e)))
+    return response.calendarEvent
+  }, [token])
+
   return (
     <WFCTSContext.Provider
       value={{
@@ -235,6 +313,15 @@ export function WFCTSProvider({ children }) {
         deleteTimetableSlot,
         refreshTimetableSlots,
         fetchAvailableTeachers,
+        calendarEvents,
+        fetchCalendarEvents,
+        addCalendarEvent,
+        updateCalendarEvent,
+        approveCalendarEvent,
+        rejectCalendarEvent,
+        completeCalendarEvent,
+        substituteCalendarEvent,
+        cancelCalendarEvent,
         refreshData,
         refreshSettlementPlan,
       }}
