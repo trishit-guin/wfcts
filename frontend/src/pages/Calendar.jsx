@@ -56,11 +56,6 @@ function timeToMin(t) {
   return h * 60 + m
 }
 
-function minToTime(m) {
-  const h = Math.floor(m / 60).toString().padStart(2, '0')
-  const min = (m % 60).toString().padStart(2, '0')
-  return `${h}:${min}`
-}
 
 function calcTop(startTime) {
   const startMin = timeToMin(startTime)
@@ -266,14 +261,14 @@ function MiniCalendar({ currentDate, selectedDate, onSelectDate, calendarEvents 
               className={`relative flex h-7 w-full items-center justify-center rounded-lg text-[0.65rem] font-medium transition-colors
                 ${!inMonth ? 'text-slate-300' : ''}
                 ${inMonth && !isSelected && !today ? 'text-slate-600 hover:bg-slate-100' : ''}
-                ${today && !isSelected ? 'font-bold text-[var(--wfcts-primary)]' : ''}
-                ${isSelected ? 'bg-[var(--wfcts-primary)] text-white shadow-sm' : ''}
-                ${inWeek && !isSelected ? 'bg-[var(--wfcts-primary)]/6' : ''}
+                ${today && !isSelected ? 'font-bold text-(--wfcts-primary)' : ''}
+                ${isSelected ? 'bg-(--wfcts-primary) text-white shadow-sm' : ''}
+                ${inWeek && !isSelected ? 'bg-(--wfcts-primary)/6' : ''}
               `}
             >
               {date.getDate()}
               {hasEvents && !isSelected && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-[var(--wfcts-secondary)]" />
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-(--wfcts-secondary)" />
               )}
             </button>
           )
@@ -402,7 +397,7 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
               value={form.title}
               onChange={(e) => handleChange('title', e.target.value)}
               placeholder="e.g. Guest Lecture – AI in Healthcare"
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[var(--wfcts-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--wfcts-primary)]/20"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none focus:ring-2 focus:ring-(--wfcts-primary)/20"
             />
           </div>
 
@@ -438,7 +433,7 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
                 type="date"
                 value={form.date}
                 onChange={(e) => handleChange('date', e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[var(--wfcts-primary)] focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
               />
             </div>
             <div>
@@ -447,7 +442,7 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
                 type="time"
                 value={form.startTime}
                 onChange={(e) => handleChange('startTime', e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[var(--wfcts-primary)] focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
               />
             </div>
             <div>
@@ -456,7 +451,7 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
                 type="time"
                 value={form.endTime}
                 onChange={(e) => handleChange('endTime', e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[var(--wfcts-primary)] focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
               />
             </div>
           </div>
@@ -485,7 +480,7 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
                 value={form.subject}
                 onChange={(e) => handleChange('subject', e.target.value)}
                 placeholder="e.g. CS401"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[var(--wfcts-primary)] focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
               />
             </div>
             <div>
@@ -495,7 +490,7 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
                 value={form.className}
                 onChange={(e) => handleChange('className', e.target.value)}
                 placeholder="e.g. CS-7A"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[var(--wfcts-primary)] focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
               />
             </div>
             <div>
@@ -505,7 +500,7 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
                 value={form.location}
                 onChange={(e) => handleChange('location', e.target.value)}
                 placeholder="e.g. LH-3"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[var(--wfcts-primary)] focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
               />
             </div>
           </div>
@@ -517,7 +512,7 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
               <select
                 value={form.assignedTo}
                 onChange={(e) => handleChange('assignedTo', e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[var(--wfcts-primary)] focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
               >
                 <option value="">Select teacher...</option>
                 {teacherDirectory.map((t) => (
@@ -535,7 +530,7 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
                   type="checkbox"
                   checked={form.forManager}
                   onChange={(e) => handleChange('forManager', e.target.checked)}
-                  className="h-4 w-4 rounded accent-[var(--wfcts-primary)]"
+                  className="h-4 w-4 rounded accent-(--wfcts-primary)"
                 />
                 <span className="text-xs font-semibold text-slate-600">Schedule on behalf of manager</span>
               </label>
@@ -544,7 +539,7 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
                   <select
                     value={form.assignedTo}
                     onChange={(e) => handleChange('assignedTo', e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-[var(--wfcts-primary)] focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-(--wfcts-primary) focus:outline-none"
                   >
                     <option value="">Select manager...</option>
                     {managers.map((m) => (
@@ -568,7 +563,7 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
               <select
                 value={form.linkedTaskId}
                 onChange={(e) => handleChange('linkedTaskId', e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[var(--wfcts-primary)] focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
               >
                 <option value="">None</option>
                 {pendingTasks.map((t) => (
@@ -588,14 +583,14 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
               onChange={(e) => handleChange('description', e.target.value)}
               rows={2}
               placeholder="Any additional context..."
-              className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-[var(--wfcts-primary)] focus:outline-none"
+              className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
             />
           </div>
 
           <button
             type="submit"
             disabled={saving}
-            className="w-full rounded-xl bg-[var(--wfcts-primary)] py-3 text-sm font-bold text-white shadow-lg shadow-[var(--wfcts-primary)]/20 transition-all hover:-translate-y-px hover:shadow-xl disabled:opacity-60"
+            className="w-full rounded-xl bg-(--wfcts-primary) py-3 text-sm font-bold text-white shadow-lg shadow-(--wfcts-primary)/20 transition-all hover:-translate-y-px hover:shadow-xl disabled:opacity-60"
           >
             {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Schedule Event'}
           </button>
@@ -767,7 +762,7 @@ function EventDrawer({ event, onClose, teacherDirectory, user, onComplete, onApp
               <select
                 value={subTeacherId}
                 onChange={(e) => setSubTeacherId(e.target.value)}
-                className="mb-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-[var(--wfcts-primary)]"
+                className="mb-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-(--wfcts-primary)"
               >
                 <option value="">Select teacher...</option>
                 {teacherDirectory.filter((t) => t.id !== event.assignedTo).map((t) => (
@@ -832,7 +827,7 @@ function EventDrawer({ event, onClose, teacherDirectory, user, onComplete, onApp
               <button
                 onClick={() => act('complete', () => { onComplete(event.id); onClose() })}
                 disabled={acting === 'complete'}
-                className="flex items-center gap-1.5 rounded-xl bg-[var(--wfcts-primary)] px-3 py-2 text-xs font-bold text-white shadow-sm hover:opacity-90 disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-xl bg-(--wfcts-primary) px-3 py-2 text-xs font-bold text-white shadow-sm hover:opacity-90 disabled:opacity-60"
               >
                 <SymIcon name="task_alt" className="text-sm" />
                 {acting === 'complete' ? 'Logging...' : 'Mark Complete'}
@@ -891,13 +886,15 @@ export default function Calendar() {
   const weekDays = getWeekDays(weekStart)
 
   // Fetch events for current week + adjacent (for mini calendar dots)
+  const currentYear = currentDate.getFullYear()
+  const currentMonth = currentDate.getMonth()
   const fetchRange = useCallback(async () => {
     setIsLoading(true)
     setError('')
     try {
       // Fetch a wider range for the mini calendar dot indicators (current month ±1)
-      const rangeStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
-      const rangeEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0)
+      const rangeStart = new Date(currentYear, currentMonth - 1, 1)
+      const rangeEnd = new Date(currentYear, currentMonth + 2, 0)
       await fetchCalendarEvents({
         startDate: toISODate(rangeStart),
         endDate: toISODate(rangeEnd),
@@ -907,7 +904,7 @@ export default function Calendar() {
     } finally {
       setIsLoading(false)
     }
-  }, [fetchCalendarEvents, currentDate.getFullYear(), currentDate.getMonth()])
+  }, [fetchCalendarEvents, currentYear, currentMonth])
 
   useEffect(() => { fetchRange() }, [fetchRange])
 
@@ -976,7 +973,7 @@ export default function Calendar() {
       {/* Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-label text-[0.62rem] font-bold uppercase tracking-[0.28em] text-[var(--wfcts-muted)]">
+          <p className="font-label text-[0.62rem] font-bold uppercase tracking-[0.28em] text-(--wfcts-muted)">
             Work Scheduling Engine
           </p>
           <h1 className="font-headline text-2xl font-extrabold tracking-[-0.04em] text-slate-800 sm:text-3xl">
@@ -993,7 +990,7 @@ export default function Calendar() {
           )}
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 rounded-xl bg-[var(--wfcts-primary)] px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-[var(--wfcts-primary)]/20 transition-all hover:-translate-y-0.5"
+            className="flex items-center gap-2 rounded-xl bg-(--wfcts-primary) px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-(--wfcts-primary)/20 transition-all hover:-translate-y-0.5"
           >
             <SymIcon name="add" className="text-base" />
             Schedule Event
@@ -1049,17 +1046,17 @@ export default function Calendar() {
               return (
                 <div
                   key={i}
-                  className={`border-r border-slate-100 px-2 py-2 text-center last:border-r-0 ${today ? 'bg-[var(--wfcts-primary)]/5' : ''}`}
+                  className={`border-r border-slate-100 px-2 py-2 text-center last:border-r-0 ${today ? 'bg-(--wfcts-primary)/5' : ''}`}
                 >
-                  <p className={`text-[0.55rem] font-bold uppercase tracking-widest ${today ? 'text-[var(--wfcts-primary)]' : 'text-slate-400'}`}>
+                  <p className={`text-[0.55rem] font-bold uppercase tracking-widest ${today ? 'text-(--wfcts-primary)' : 'text-slate-400'}`}>
                     {DAY_NAMES[day.getDay()]}
                   </p>
                   <div className={`mx-auto mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold
-                    ${today ? 'bg-[var(--wfcts-primary)] text-white' : 'text-slate-700'}`}>
+                    ${today ? 'bg-(--wfcts-primary) text-white' : 'text-slate-700'}`}>
                     {day.getDate()}
                   </div>
                   {hasEvents && (
-                    <div className="mx-auto mt-0.5 h-1 w-1 rounded-full bg-[var(--wfcts-secondary)]" />
+                    <div className="mx-auto mt-0.5 h-1 w-1 rounded-full bg-(--wfcts-secondary)" />
                   )}
                 </div>
               )
@@ -1098,7 +1095,7 @@ export default function Calendar() {
                 return (
                   <div
                     key={di}
-                    className={`relative border-r border-slate-100 last:border-r-0 ${today ? 'bg-[var(--wfcts-primary)]/[0.02]' : ''}`}
+                    className={`relative border-r border-slate-100 last:border-r-0 ${today ? 'bg-(--wfcts-primary)/[0.02]' : ''}`}
                   >
                     {/* Hour lines */}
                     {HOURS.map((hour) => (
