@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
 
@@ -32,6 +33,7 @@ function dayLabel(dayOfWeek) {
 }
 
 export default function Timetable() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const {
     teacherDirectory,
@@ -168,16 +170,26 @@ export default function Timetable() {
 
   return (
     <div className="space-y-8 animate-float-in">
-      <section>
-        <p className="font-label text-sm font-semibold uppercase tracking-[0.22em] text-[var(--wfcts-primary)]">
-          Academic Staff Portal
-        </p>
-        <h2 className="font-headline mt-2 text-4xl font-extrabold tracking-[-0.06em] text-[var(--wfcts-primary)] sm:text-5xl">
-          Timetable
-        </h2>
-        <p className="mt-3 text-sm text-[var(--wfcts-muted)] sm:text-base">
-          Manage recurring teaching slots, departments, and coverage windows across the week.
-        </p>
+      <section className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="font-label text-sm font-semibold uppercase tracking-[0.22em] text-(--wfcts-primary)">
+            Academic Staff Portal
+          </p>
+          <h2 className="font-headline mt-2 text-4xl font-extrabold tracking-[-0.06em] text-(--wfcts-primary) sm:text-5xl">
+            Timetable
+          </h2>
+          <p className="mt-3 text-sm text-(--wfcts-muted) sm:text-base">
+            Manage recurring teaching slots, departments, and coverage windows across the week.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/timetable-upload')}
+          className="flex items-center gap-2 rounded-xl border border-(--wfcts-primary)/20 bg-(--wfcts-primary)/6 px-4 py-2.5 text-sm font-bold text-(--wfcts-primary) hover:bg-(--wfcts-primary)/10 transition-colors"
+        >
+          <span className="material-symbols-outlined text-base">document_scanner</span>
+          Upload via OCR
+        </button>
       </section>
 
       <section className="hide-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
