@@ -21,6 +21,8 @@ function pageMeta(pathname, role) {
     '/hod/dashboard': { eyebrow: 'Department Oversight', title: 'Dashboard' },
     '/assign-task': { eyebrow: 'Workflow Management', title: 'Assign Task' },
     '/fairness': { eyebrow: 'Workload Insights', title: 'Fairness' },
+    '/academic-calendar': { eyebrow: 'Institution-wide', title: 'Academic Calendar' },
+    '/timetable-upload': { eyebrow: 'OCR Import', title: 'Upload Timetable' },
   }
 
   if (role === 'ADMIN' || role === 'HOD') {

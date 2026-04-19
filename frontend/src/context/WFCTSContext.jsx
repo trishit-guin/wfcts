@@ -28,6 +28,9 @@ import {
   getWeeklyProgressRequest,
   getWeeklyProgressHistoryRequest,
   snapshotWeeklyProgressRequest,
+  getAcademicCalendarRequest,
+  createAcademicEventRequest,
+  deleteAcademicEventRequest,
 } from '../utils/api'
 import { useAuth } from './AuthContext'
 
@@ -44,6 +47,7 @@ const initialState = {
   calendarEvents: [],
   weeklyProgress: null,
   weeklyProgressHistory: [],
+  academicEvents: [],
   settlementPlan: {
     generatedAt: '',
     totalPendingLinkedCredits: 0,
@@ -65,6 +69,7 @@ export function WFCTSProvider({ children }) {
   const [calendarEvents, setCalendarEvents] = useState(initialState.calendarEvents)
   const [weeklyProgress, setWeeklyProgress] = useState(initialState.weeklyProgress)
   const [weeklyProgressHistory, setWeeklyProgressHistory] = useState(initialState.weeklyProgressHistory)
+  const [academicEvents, setAcademicEvents] = useState(initialState.academicEvents)
   const [settlementPlan, setSettlementPlan] = useState(initialState.settlementPlan)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -80,6 +85,7 @@ export function WFCTSProvider({ children }) {
     setCalendarEvents(initialState.calendarEvents)
     setWeeklyProgress(initialState.weeklyProgress)
     setWeeklyProgressHistory(initialState.weeklyProgressHistory)
+    setAcademicEvents(initialState.academicEvents)
     setSettlementPlan(initialState.settlementPlan)
   }, [])
 
@@ -315,6 +321,26 @@ export function WFCTSProvider({ children }) {
     return response.snapshot
   }, [token])
 
+  // ─── Academic Calendar ──────────────────────────────────────────────────────
+
+  const fetchAcademicEvents = useCallback(async () => {
+    const response = await getAcademicCalendarRequest(token)
+    const events = response.events || []
+    setAcademicEvents(events)
+    return events
+  }, [token])
+
+  const addAcademicEvent = useCallback(async (payload) => {
+    const response = await createAcademicEventRequest(token, payload)
+    setAcademicEvents((prev) => [...prev, response.event].sort((a, b) => a.date.localeCompare(b.date)))
+    return response.event
+  }, [token])
+
+  const removeAcademicEvent = useCallback(async (id) => {
+    await deleteAcademicEventRequest(token, id)
+    setAcademicEvents((prev) => prev.filter((e) => e.id !== id))
+  }, [token])
+
   return (
     <WFCTSContext.Provider
       value={{
@@ -356,6 +382,10 @@ export function WFCTSProvider({ children }) {
         fetchWeeklyProgress,
         fetchWeeklyProgressHistory,
         snapshotWeeklyProgress,
+        academicEvents,
+        fetchAcademicEvents,
+        addAcademicEvent,
+        removeAcademicEvent,
         refreshData,
         refreshSettlementPlan,
       }}

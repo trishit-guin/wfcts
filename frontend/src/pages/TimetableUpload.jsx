@@ -180,9 +180,11 @@ function SlotRow({ slot, index, teacherDirectory, onUpdate, onRemove }) {
 }
 
 export default function TimetableUpload() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const { teacherDirectory } = useWFCTS()
   const navigate = useNavigate()
+
+  const isManager = user?.role === 'ADMIN' || user?.role === 'HOD'
 
   const [step, setStep] = useState('upload') // 'upload' | 'preview' | 'saving' | 'done'
   const [uploadId, setUploadId] = useState(null)
@@ -194,6 +196,7 @@ export default function TimetableUpload() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [savedCount, setSavedCount] = useState(0)
+  const [targetTeacherId, setTargetTeacherId] = useState('')
   const fileInputRef = useRef(null)
 
   const handleFile = useCallback(async (file) => {
@@ -210,6 +213,9 @@ export default function TimetableUpload() {
     try {
       const formData = new FormData()
       formData.append('file', file)
+      if (isManager && targetTeacherId) {
+        formData.append('targetUserId', targetTeacherId)
+      }
       const result = await uploadTimetableRequest(token, formData)
       const upload = result.upload
       setUploadId(upload.id)
@@ -221,7 +227,7 @@ export default function TimetableUpload() {
     } finally {
       setUploading(false)
     }
-  }, [token])
+  }, [token, isManager, targetTeacherId])
 
   const handleDrop = (e) => {
     e.preventDefault()
@@ -463,6 +469,28 @@ export default function TimetableUpload() {
 
       {error && (
         <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+      )}
+
+      {/* Manager: choose target teacher */}
+      {isManager && (
+        <div className="wfcts-card p-5">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Upload Timetable For</p>
+          <select
+            value={targetTeacherId}
+            onChange={(e) => setTargetTeacherId(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none focus:ring-2 focus:ring-(--wfcts-primary)/20"
+          >
+            <option value="">Whole department (assign per slot in preview)</option>
+            {teacherDirectory.map((t) => (
+              <option key={t.id} value={t.id}>{t.name} — {t.department || t.role}</option>
+            ))}
+          </select>
+          {targetTeacherId && (
+            <p className="mt-2 text-xs text-slate-400">
+              All detected slots will be auto-assigned to <strong>{teacherDirectory.find((t) => t.id === targetTeacherId)?.name}</strong>. You can still reassign individually in the preview.
+            </p>
+          )}
+        </div>
       )}
 
       {/* Drop zone */}

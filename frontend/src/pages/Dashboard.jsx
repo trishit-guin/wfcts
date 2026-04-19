@@ -139,11 +139,9 @@ function ScheduleItem({ slot, highlight }) {
 function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
   const [expanded, setExpanded] = useState(false)
 
-  if (!weeklyProgress) return null
-
-  const teachPct = weeklyProgress.percentages?.teaching ?? 0
-  const otherPct = weeklyProgress.percentages?.other ?? 0
-  const totalPct = weeklyProgress.percentages?.total ?? 0
+  const teachPct = weeklyProgress?.percentages?.teaching ?? 0
+  const otherPct = weeklyProgress?.percentages?.other ?? 0
+  const totalPct = weeklyProgress?.percentages?.total ?? 0
 
   const statusColor = totalPct >= 75 ? 'text-emerald-600' : totalPct >= 40 ? 'text-(--wfcts-primary)' : 'text-amber-600'
   const barColor = totalPct >= 75 ? 'bg-emerald-500' : totalPct >= 40 ? 'bg-(--wfcts-primary)' : 'bg-amber-500'
@@ -164,7 +162,7 @@ function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
 
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <span className="hidden text-[0.62rem] font-bold uppercase tracking-wider text-slate-400 sm:inline whitespace-nowrap">
-            Week {weeklyProgress.weekId?.split('-W')[1]}
+            {weeklyProgress ? `Week ${weeklyProgress.weekId?.split('-W')[1]}` : 'This Week'}
           </span>
 
           {/* Thin composite bar */}
@@ -184,7 +182,7 @@ function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
 
         <div className="flex items-center gap-3 shrink-0">
           <span className={`text-sm font-extrabold tabular-nums ${statusColor}`}>
-            {weeklyProgress.totalHours}h
+            {weeklyProgress?.totalHours ?? 0}h
             <span className="ml-1 text-[0.65rem] font-semibold text-slate-400">/ 40h</span>
           </span>
           <span className={`hidden rounded-full px-2.5 py-0.5 text-[0.6rem] font-bold sm:inline ${
@@ -215,7 +213,7 @@ function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
                   <span className="inline-block h-2 w-2 rounded-full bg-(--wfcts-primary)" />
                   Teaching
                 </span>
-                <span className="text-(--wfcts-primary)">{weeklyProgress.teachingHours}h / 20h</span>
+                <span className="text-(--wfcts-primary)">{weeklyProgress?.teachingHours ?? 0}h / 20h</span>
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
                 <div
@@ -224,17 +222,17 @@ function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
                 />
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {weeklyProgress.breakdown?.lectureHours > 0 && (
+                {weeklyProgress?.breakdown?.lectureHours > 0 && (
                   <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[0.6rem] font-semibold text-blue-600">
                     Lectures {weeklyProgress.breakdown.lectureHours}h
                   </span>
                 )}
-                {weeklyProgress.breakdown?.labHours > 0 && (
+                {weeklyProgress?.breakdown?.labHours > 0 && (
                   <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[0.6rem] font-semibold text-teal-600">
                     Labs {weeklyProgress.breakdown.labHours}h
                   </span>
                 )}
-                {weeklyProgress.breakdown?.subCoverHours > 0 && (
+                {weeklyProgress?.breakdown?.subCoverHours > 0 && (
                   <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[0.6rem] font-semibold text-rose-600">
                     Sub Cover {weeklyProgress.breakdown.subCoverHours}h
                   </span>
@@ -247,7 +245,7 @@ function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
                   <span className="inline-block h-2 w-2 rounded-full bg-(--wfcts-secondary)" />
                   Other Duties
                 </span>
-                <span className="text-(--wfcts-secondary)">{weeklyProgress.otherHours}h / 20h</span>
+                <span className="text-(--wfcts-secondary)">{weeklyProgress?.otherHours ?? 0}h / 20h</span>
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
                 <div
@@ -256,17 +254,17 @@ function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
                 />
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {weeklyProgress.breakdown?.adminHours > 0 && (
+                {weeklyProgress?.breakdown?.adminHours > 0 && (
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.6rem] font-semibold text-slate-600">
                     Admin {weeklyProgress.breakdown.adminHours}h
                   </span>
                 )}
-                {weeklyProgress.breakdown?.meetingHours > 0 && (
+                {weeklyProgress?.breakdown?.meetingHours > 0 && (
                   <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[0.6rem] font-semibold text-purple-600">
                     Meetings {weeklyProgress.breakdown.meetingHours}h
                   </span>
                 )}
-                {weeklyProgress.breakdown?.extraDutyHours > 0 && (
+                {weeklyProgress?.breakdown?.extraDutyHours > 0 && (
                   <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[0.6rem] font-semibold text-amber-600">
                     Extra Duty {weeklyProgress.breakdown.extraDutyHours}h
                   </span>
@@ -275,7 +273,7 @@ function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-            <p className="text-xs text-slate-400">{weeklyProgress.weekStart} – {weeklyProgress.weekEnd}</p>
+            <p className="text-xs text-slate-400">{weeklyProgress?.weekStart} – {weeklyProgress?.weekEnd}</p>
             <button
               onClick={() => onNavigate('/weekly-progress')}
               className="flex items-center gap-1.5 text-xs font-bold text-(--wfcts-primary) hover:opacity-75"
@@ -406,6 +404,14 @@ export default function Dashboard() {
           >
             <span className="material-symbols-outlined text-base">payments</span>
             Add Substitution
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/timetable-upload')}
+            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-[var(--wfcts-primary)] shadow-sm transition-colors hover:bg-slate-50"
+          >
+            <span className="material-symbols-outlined text-base">document_scanner</span>
+            Upload Timetable
           </button>
         </div>
       </section>

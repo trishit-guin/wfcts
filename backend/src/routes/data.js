@@ -15,6 +15,7 @@ const { computeChainSettlements } = require('../utils/substituteSettlement')
 const { computeWeekProgress, getISOWeekId, createTimetableCalendarEvents } = require('../utils/weeklyProgress')
 const { extractText } = require('../utils/ocrParser')
 const { parseTimetableText } = require('../utils/timetableParser')
+const AcademicCalendarEvent = require('../models/AcademicCalendarEvent')
 
 const router = express.Router()
 
@@ -1310,7 +1311,7 @@ router.post('/weekly-progress/snapshot', async (req, res, next) => {
 
 // ─── Timetable Upload (OCR → Parse → Preview) ─────────────────────────────────
 
-router.post('/timetable-upload', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+router.post('/timetable-upload', requireRoles('TEACHER', 'ADMIN', 'HOD'), async (req, res, next) => {
   try {
     if (!req.file) {
       const error = new Error('No file uploaded')
@@ -1320,7 +1321,16 @@ router.post('/timetable-upload', requireRoles('ADMIN', 'HOD'), async (req, res, 
 
     const { buffer, mimetype, originalname } = req.file
     const rawOCRText = await extractText(buffer, mimetype)
-    const parsedSlots = parseTimetableText(rawOCRText)
+    let parsedSlots = parseTimetableText(rawOCRText)
+
+    // Auto-assign slots: teacher → self, admin/HOD with targetUserId → that user
+    if (req.user.role === 'TEACHER') {
+      const selfId = String(req.user._id)
+      parsedSlots = parsedSlots.map((s) => ({ ...s, teacherId: selfId }))
+    } else if (req.body.targetUserId) {
+      const targetId = String(req.body.targetUserId)
+      parsedSlots = parsedSlots.map((s) => ({ ...s, teacherId: targetId }))
+    }
 
     const upload = await TimetableUpload.create({
       uploadedBy: req.user._id,
@@ -1337,7 +1347,7 @@ router.post('/timetable-upload', requireRoles('ADMIN', 'HOD'), async (req, res, 
   }
 })
 
-router.get('/timetable-upload/:uploadId', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+router.get('/timetable-upload/:uploadId', requireRoles('TEACHER', 'ADMIN', 'HOD'), async (req, res, next) => {
   try {
     const upload = await TimetableUpload.findById(req.params.uploadId)
     if (!upload) {
@@ -1351,7 +1361,7 @@ router.get('/timetable-upload/:uploadId', requireRoles('ADMIN', 'HOD'), async (r
   }
 })
 
-router.patch('/timetable-upload/:uploadId', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+router.patch('/timetable-upload/:uploadId', requireRoles('TEACHER', 'ADMIN', 'HOD'), async (req, res, next) => {
   try {
     const upload = await TimetableUpload.findById(req.params.uploadId)
     if (!upload) {
@@ -1370,7 +1380,7 @@ router.patch('/timetable-upload/:uploadId', requireRoles('ADMIN', 'HOD'), async 
   }
 })
 
-router.post('/timetable-upload/:uploadId/save', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+router.post('/timetable-upload/:uploadId/save', requireRoles('TEACHER', 'ADMIN', 'HOD'), async (req, res, next) => {
   try {
     const upload = await TimetableUpload.findById(req.params.uploadId)
     if (!upload) {
@@ -1601,6 +1611,89 @@ router.get('/export/monthly', async (req, res, next) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
     res.setHeader('Content-Type', contentType)
     res.send(fileBuffer)
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ─── Academic Calendar (global events visible to all) ─────────────────────────
+
+router.get('/academic-calendar', requireAuth, async (req, res, next) => {
+  try {
+    const events = await AcademicCalendarEvent.find({}).sort({ date: 1 }).lean()
+    res.json({
+      events: events.map((e) => ({
+        ...e,
+        id: String(e._id),
+        createdBy: String(e.createdBy),
+        date: e.date ? new Date(e.date).toISOString().slice(0, 10) : '',
+        endDate: e.endDate ? new Date(e.endDate).toISOString().slice(0, 10) : '',
+        _id: undefined,
+        __v: undefined,
+      })),
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.post('/academic-calendar', requireRoles('ADMIN'), async (req, res, next) => {
+  try {
+    const { title, date, endDate, type, description } = req.body
+    if (!title || !date || !type) {
+      const error = new Error('title, date, and type are required')
+      error.statusCode = 400
+      throw error
+    }
+    const event = await AcademicCalendarEvent.create({
+      title: String(title).trim(),
+      date: toDate(date, 'date'),
+      endDate: endDate ? toDate(endDate, 'endDate') : null,
+      type,
+      description: description || '',
+      createdBy: req.user._id,
+    })
+    res.status(201).json({ event: event.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.delete('/academic-calendar/:id', requireRoles('ADMIN'), async (req, res, next) => {
+  try {
+    await AcademicCalendarEvent.findByIdAndDelete(req.params.id)
+    res.json({ ok: true })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ─── View / Edit another user's calendar (admin/HOD) ─────────────────────────
+
+router.get('/calendar/user/:userId', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+  try {
+    const filter = { assignedTo: req.params.userId }
+    if (req.query.startDate) filter.date = { $gte: toDate(req.query.startDate, 'startDate') }
+    if (req.query.endDate) filter.date = { ...filter.date, $lte: toDate(req.query.endDate, 'endDate') }
+
+    const events = await CalendarEvent.find(filter).sort({ date: 1, startTime: 1 }).lean()
+    res.json({
+      events: events.map((e) => ({
+        ...e,
+        id: String(e._id),
+        assignedTo: String(e.assignedTo),
+        createdBy: String(e.createdBy),
+        onBehalfOf: e.onBehalfOf ? String(e.onBehalfOf) : '',
+        linkedWorkEntryId: e.linkedWorkEntryId ? String(e.linkedWorkEntryId) : '',
+        linkedSubstituteEntryId: e.linkedSubstituteEntryId ? String(e.linkedSubstituteEntryId) : '',
+        originalEventId: e.originalEventId ? String(e.originalEventId) : '',
+        linkedTaskId: e.linkedTaskId ? String(e.linkedTaskId) : '',
+        timetableSlotId: e.timetableSlotId ? String(e.timetableSlotId) : '',
+        date: e.date ? new Date(e.date).toISOString().slice(0, 10) : '',
+        _id: undefined,
+        __v: undefined,
+      })),
+    })
   } catch (error) {
     next(error)
   }

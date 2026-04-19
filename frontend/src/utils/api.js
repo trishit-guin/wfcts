@@ -340,3 +340,28 @@ export async function exportMonthlyRequest(token, params = {}) {
   a.remove()
   URL.revokeObjectURL(url)
 }
+
+// ─── Academic Calendar ────────────────────────────────────────────────────────
+
+export function getAcademicCalendarRequest(token) {
+  return apiRequest('/data/academic-calendar', { token })
+}
+
+export function createAcademicEventRequest(token, payload) {
+  return apiRequest('/data/academic-calendar', { method: 'POST', token, body: payload })
+}
+
+export function deleteAcademicEventRequest(token, id) {
+  return apiRequest(`/data/academic-calendar/${id}`, { method: 'DELETE', token })
+}
+
+// ─── View another user's calendar (admin/HOD) ────────────────────────────────
+
+export function getUserCalendarEventsRequest(token, userId, params = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') query.set(k, String(v))
+  })
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  return apiRequest(`/data/calendar/user/${userId}${suffix}`, { token })
+}

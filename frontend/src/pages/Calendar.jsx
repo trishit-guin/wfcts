@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
-import { getManagersRequest, exportMonthlyRequest } from '../utils/api'
+import { getManagersRequest, exportMonthlyRequest, getUserCalendarEventsRequest } from '../utils/api'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -869,7 +869,10 @@ export default function Calendar() {
     completeCalendarEvent, substituteCalendarEvent,
     cancelCalendarEvent,
     teacherDirectory, timetableSlots, tasks,
+    academicEvents, fetchAcademicEvents,
   } = useWFCTS()
+
+  const isManager = user?.role === 'ADMIN' || user?.role === 'HOD'
 
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(null)
@@ -877,6 +880,9 @@ export default function Calendar() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingEvent, setEditingEvent] = useState(null)
   const [managers, setManagers] = useState([])
+  // admin/HOD: which teacher's calendar to view ('' = own)
+  const [viewingUserId, setViewingUserId] = useState('')
+  const [viewingEvents, setViewingEvents] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState('')
@@ -929,6 +935,20 @@ export default function Calendar() {
     getManagersRequest(token).then((r) => setManagers(r.managers || [])).catch(() => {})
   }, [token])
 
+  // Fetch academic events once on mount
+  useEffect(() => { fetchAcademicEvents().catch(() => {}) }, [fetchAcademicEvents])
+
+  // Fetch selected teacher's calendar when viewingUserId changes
+  useEffect(() => {
+    if (!isManager || !viewingUserId) { setViewingEvents([]); return }
+    const rangeStart = new Date(currentYear, currentMonth - 1, 1)
+    const rangeEnd = new Date(currentYear, currentMonth + 2, 0)
+    getUserCalendarEventsRequest(token, viewingUserId, {
+      startDate: toISODate(rangeStart),
+      endDate: toISODate(rangeEnd),
+    }).then((r) => setViewingEvents(r.events || [])).catch(() => {})
+  }, [viewingUserId, isManager, token, currentYear, currentMonth])
+
   // Scroll to 8am on mount
   useEffect(() => {
     if (gridRef.current) {
@@ -948,11 +968,28 @@ export default function Calendar() {
   // Filter events for the current week view
   const weekStartStr = toISODate(weekStart)
   const weekEndStr = toISODate(weekEnd)
-  const weekEvents = calendarEvents.filter((e) => e.date >= weekStartStr && e.date <= weekEndStr)
+  const activeEvents = (isManager && viewingUserId) ? viewingEvents : calendarEvents
+  const weekEvents = activeEvents.filter((e) => e.date >= weekStartStr && e.date <= weekEndStr)
 
   const getEventsForDay = (date) => {
     const dateStr = toISODate(date)
     return weekEvents.filter((e) => e.date === dateStr)
+  }
+
+  const getAcademicEventsForDay = (date) => {
+    const dateStr = toISODate(date)
+    return academicEvents.filter((e) => {
+      if (!e.date) return false
+      if (e.endDate && e.endDate !== e.date) return dateStr >= e.date && dateStr <= e.endDate
+      return e.date === dateStr
+    })
+  }
+
+  const ACADEMIC_TYPE_STYLE = {
+    HOLIDAY: 'bg-emerald-100 text-emerald-700',
+    EXAM:    'bg-rose-100 text-rose-700',
+    EVENT:   'bg-blue-100 text-blue-700',
+    BREAK:   'bg-amber-100 text-amber-700',
   }
 
   const getTimetableSlotsForDay = (date) => {
@@ -1050,6 +1087,18 @@ export default function Calendar() {
               <SymIcon name="chevron_right" className="text-xl" />
             </button>
             <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-700">{weekLabel}</span>
+            {isManager && (
+              <select
+                value={viewingUserId}
+                onChange={(e) => setViewingUserId(e.target.value)}
+                className="rounded-xl border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-700 focus:border-(--wfcts-primary) focus:outline-none max-w-40"
+              >
+                <option value="">My Calendar</option>
+                {teacherDirectory.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            )}
             <button
               onClick={goToday}
               className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
@@ -1067,10 +1116,11 @@ export default function Calendar() {
             {weekDays.map((day, i) => {
               const today = isToday(day)
               const hasEvents = getEventsForDay(day).length > 0
+              const acEvents = getAcademicEventsForDay(day)
               return (
                 <div
                   key={i}
-                  className={`border-r border-slate-100 px-2 py-2 text-center last:border-r-0 ${today ? 'bg-(--wfcts-primary)/5' : ''}`}
+                  className={`border-r border-slate-100 px-1 py-2 text-center last:border-r-0 ${today ? 'bg-(--wfcts-primary)/5' : ''}`}
                 >
                   <p className={`text-[0.55rem] font-bold uppercase tracking-widest ${today ? 'text-(--wfcts-primary)' : 'text-slate-400'}`}>
                     {DAY_NAMES[day.getDay()]}
@@ -1082,6 +1132,11 @@ export default function Calendar() {
                   {hasEvents && (
                     <div className="mx-auto mt-0.5 h-1 w-1 rounded-full bg-(--wfcts-secondary)" />
                   )}
+                  {acEvents.map((ae) => (
+                    <div key={ae.id} className={`mt-0.5 truncate rounded px-1 py-px text-[0.45rem] font-bold leading-tight ${ACADEMIC_TYPE_STYLE[ae.type] || 'bg-slate-100 text-slate-600'}`}>
+                      {ae.title}
+                    </div>
+                  ))}
                 </div>
               )
             })}

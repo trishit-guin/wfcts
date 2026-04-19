@@ -20,6 +20,7 @@ import Timetable from './pages/Timetable'
 import Calendar from './pages/Calendar'
 import TimetableUpload from './pages/TimetableUpload'
 import WeeklyProgress from './pages/WeeklyProgress'
+import AcademicCalendar from './pages/AcademicCalendar'
 
 function RoleHomeRedirect() {
   const { user } = useAuth()
@@ -187,9 +188,19 @@ function App() {
           <Route
             path="/timetable-upload"
             element={
-              <ProtectedRoute roles={['ADMIN', 'HOD']}>
+              <ProtectedRoute roles={['TEACHER', 'ADMIN', 'HOD']}>
                 <Layout>
                   <TimetableUpload />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/academic-calendar"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <Layout>
+                  <AcademicCalendar />
                 </Layout>
               </ProtectedRoute>
             }
