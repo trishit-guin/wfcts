@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
@@ -136,55 +136,156 @@ function ScheduleItem({ slot, highlight }) {
   )
 }
 
-function WeeklyProgressWidget({ weeklyProgress, onNavigate }) {
+function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
+  const [expanded, setExpanded] = useState(false)
+
   if (!weeklyProgress) return null
 
   const teachPct = weeklyProgress.percentages?.teaching ?? 0
   const otherPct = weeklyProgress.percentages?.other ?? 0
+  const totalPct = weeklyProgress.percentages?.total ?? 0
+
+  const statusColor = totalPct >= 75 ? 'text-emerald-600' : totalPct >= 40 ? 'text-(--wfcts-primary)' : 'text-amber-600'
+  const barColor = totalPct >= 75 ? 'bg-emerald-500' : totalPct >= 40 ? 'bg-(--wfcts-primary)' : 'bg-amber-500'
 
   return (
-    <div className="wfcts-card p-6">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h3 className="font-headline text-base font-bold text-(--wfcts-primary)">Weekly Progress</h3>
-          <p className="text-xs text-(--wfcts-muted)">{weeklyProgress.weekId} • 40h target</p>
-        </div>
-        <button
-          onClick={() => onNavigate('/weekly-progress')}
-          className="text-xs font-bold text-(--wfcts-primary) hover:opacity-75"
-        >
-          Full Report
-        </button>
-      </div>
-      <div className="space-y-3">
-        <div>
-          <div className="flex items-center justify-between text-xs font-semibold mb-1">
-            <span className="text-slate-600">Teaching</span>
-            <span className="text-(--wfcts-primary)">{weeklyProgress.teachingHours}h / 20h</span>
-          </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+    <div
+      className={`overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 ${expanded ? 'shadow-md' : ''}`}
+    >
+      {/* Collapsed bar — always visible, click to expand */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center gap-4 px-5 py-3.5 text-left"
+      >
+        <span className="material-symbols-outlined text-base text-slate-400">
+          {expanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+        </span>
+
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <span className="hidden text-[0.62rem] font-bold uppercase tracking-wider text-slate-400 sm:inline whitespace-nowrap">
+            Week {weeklyProgress.weekId?.split('-W')[1]}
+          </span>
+
+          {/* Thin composite bar */}
+          <div className="relative flex-1 h-2.5 overflow-hidden rounded-full bg-slate-100">
+            {/* teaching portion */}
             <div
-              className="h-full rounded-full bg-linear-to-r from-(--wfcts-primary) to-[#4f7bff]"
-              style={{ width: `${teachPct}%` }}
+              className="absolute left-0 top-0 h-full rounded-full bg-linear-to-r from-(--wfcts-primary) to-[#4f7bff] transition-all duration-500"
+              style={{ width: `${Math.min(teachPct / 2, 50)}%` }}
+            />
+            {/* other duties portion */}
+            <div
+              className="absolute top-0 h-full rounded-full bg-linear-to-r from-(--wfcts-secondary) to-teal-400 transition-all duration-500"
+              style={{ left: '50%', width: `${Math.min(otherPct / 2, 50)}%` }}
             />
           </div>
         </div>
-        <div>
-          <div className="flex items-center justify-between text-xs font-semibold mb-1">
-            <span className="text-slate-600">Other Duties</span>
-            <span className="text-(--wfcts-secondary)">{weeklyProgress.otherHours}h / 20h</span>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <span className={`text-sm font-extrabold tabular-nums ${statusColor}`}>
+            {weeklyProgress.totalHours}h
+            <span className="ml-1 text-[0.65rem] font-semibold text-slate-400">/ 40h</span>
+          </span>
+          <span className={`hidden rounded-full px-2.5 py-0.5 text-[0.6rem] font-bold sm:inline ${
+            totalPct >= 75 ? 'bg-emerald-100 text-emerald-700'
+            : totalPct >= 40 ? 'bg-blue-100 text-blue-700'
+            : 'bg-amber-100 text-amber-700'
+          }`}>
+            {totalPct}%
+          </span>
+        </div>
+      </button>
+
+      {/* Overall thin progress rail */}
+      <div className="h-0.5 w-full bg-slate-100">
+        <div
+          className={`h-full transition-all duration-500 ${barColor}`}
+          style={{ width: `${totalPct}%` }}
+        />
+      </div>
+
+      {/* Expanded detail */}
+      {expanded && (
+        <div className="border-t border-slate-100 px-5 py-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <div className="flex items-center justify-between text-xs font-semibold mb-2">
+                <span className="flex items-center gap-1.5 text-slate-600">
+                  <span className="inline-block h-2 w-2 rounded-full bg-(--wfcts-primary)" />
+                  Teaching
+                </span>
+                <span className="text-(--wfcts-primary)">{weeklyProgress.teachingHours}h / 20h</span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-linear-to-r from-(--wfcts-primary) to-[#4f7bff] transition-all duration-500"
+                  style={{ width: `${teachPct}%` }}
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {weeklyProgress.breakdown?.lectureHours > 0 && (
+                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[0.6rem] font-semibold text-blue-600">
+                    Lectures {weeklyProgress.breakdown.lectureHours}h
+                  </span>
+                )}
+                {weeklyProgress.breakdown?.labHours > 0 && (
+                  <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[0.6rem] font-semibold text-teal-600">
+                    Labs {weeklyProgress.breakdown.labHours}h
+                  </span>
+                )}
+                {weeklyProgress.breakdown?.subCoverHours > 0 && (
+                  <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[0.6rem] font-semibold text-rose-600">
+                    Sub Cover {weeklyProgress.breakdown.subCoverHours}h
+                  </span>
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-xs font-semibold mb-2">
+                <span className="flex items-center gap-1.5 text-slate-600">
+                  <span className="inline-block h-2 w-2 rounded-full bg-(--wfcts-secondary)" />
+                  Other Duties
+                </span>
+                <span className="text-(--wfcts-secondary)">{weeklyProgress.otherHours}h / 20h</span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-linear-to-r from-(--wfcts-secondary) to-teal-400 transition-all duration-500"
+                  style={{ width: `${otherPct}%` }}
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {weeklyProgress.breakdown?.adminHours > 0 && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.6rem] font-semibold text-slate-600">
+                    Admin {weeklyProgress.breakdown.adminHours}h
+                  </span>
+                )}
+                {weeklyProgress.breakdown?.meetingHours > 0 && (
+                  <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[0.6rem] font-semibold text-purple-600">
+                    Meetings {weeklyProgress.breakdown.meetingHours}h
+                  </span>
+                )}
+                {weeklyProgress.breakdown?.extraDutyHours > 0 && (
+                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[0.6rem] font-semibold text-amber-600">
+                    Extra Duty {weeklyProgress.breakdown.extraDutyHours}h
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-linear-to-r from-(--wfcts-secondary) to-teal-400"
-              style={{ width: `${otherPct}%` }}
-            />
+          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+            <p className="text-xs text-slate-400">{weeklyProgress.weekStart} – {weeklyProgress.weekEnd}</p>
+            <button
+              onClick={() => onNavigate('/weekly-progress')}
+              className="flex items-center gap-1.5 text-xs font-bold text-(--wfcts-primary) hover:opacity-75"
+            >
+              Full History
+              <span className="material-symbols-outlined text-sm">north_east</span>
+            </button>
           </div>
         </div>
-      </div>
-      <p className="mt-3 text-right text-xs font-bold text-slate-500">
-        Total: {weeklyProgress.totalHours}h / 40h ({weeklyProgress.percentages?.total ?? 0}%)
-      </p>
+      )}
     </div>
   )
 }
@@ -273,7 +374,9 @@ export default function Dashboard() {
     .find((session) => session.date)
 
   return (
-    <div className="space-y-8 animate-float-in">
+    <div className="space-y-6 animate-float-in">
+      <WeeklyProgressBanner weeklyProgress={weeklyProgress} onNavigate={navigate} />
+
       <section className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="font-label text-sm font-semibold uppercase tracking-[0.22em] text-[var(--wfcts-muted)]">
@@ -400,8 +503,6 @@ export default function Dashboard() {
         </div>
 
         <div className="space-y-6">
-          <WeeklyProgressWidget weeklyProgress={weeklyProgress} onNavigate={navigate} />
-
           <div className="relative min-h-[28rem] overflow-hidden rounded-[2rem] bg-[var(--wfcts-primary)] p-8 text-white shadow-[0_22px_60px_rgba(30,58,138,0.22)]">
             <div className="absolute right-[-10%] top-[-14%] h-64 w-64 rounded-full bg-white/6 blur-3xl" />
             <div className="relative z-10 flex h-full flex-col">
