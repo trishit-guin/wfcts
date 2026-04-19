@@ -16,8 +16,19 @@ const { computeWeekProgress, getISOWeekId, createTimetableCalendarEvents } = req
 const { extractText } = require('../utils/ocrParser')
 const { parseTimetableText } = require('../utils/timetableParser')
 const AcademicCalendarEvent = require('../models/AcademicCalendarEvent')
+const multer = require('multer')
 
 const router = express.Router()
+
+const timetableUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB — PDFs can be large
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf']
+    if (allowed.includes(file.mimetype)) return cb(null, true)
+    cb(new Error('Only JPG, PNG, WebP, or PDF files are allowed'))
+  },
+})
 
 function toDate(value, fieldName) {
   const date = new Date(value)
@@ -1311,7 +1322,7 @@ router.post('/weekly-progress/snapshot', async (req, res, next) => {
 
 // ─── Timetable Upload (OCR → Parse → Preview) ─────────────────────────────────
 
-router.post('/timetable-upload', requireRoles('TEACHER', 'ADMIN', 'HOD'), async (req, res, next) => {
+router.post('/timetable-upload', requireRoles('TEACHER', 'ADMIN', 'HOD'), timetableUpload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
       const error = new Error('No file uploaded')

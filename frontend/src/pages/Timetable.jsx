@@ -188,7 +188,7 @@ export default function Timetable() {
           className="flex items-center gap-2 rounded-xl border border-(--wfcts-primary)/20 bg-(--wfcts-primary)/6 px-4 py-2.5 text-sm font-bold text-(--wfcts-primary) hover:bg-(--wfcts-primary)/10 transition-colors"
         >
           <span className="material-symbols-outlined text-base">document_scanner</span>
-          Upload via OCR
+          Upload Timetable
         </button>
       </section>
 
