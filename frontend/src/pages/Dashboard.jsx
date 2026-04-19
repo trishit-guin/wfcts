@@ -405,14 +405,14 @@ export default function Dashboard() {
             <span className="material-symbols-outlined text-base">payments</span>
             Add Substitution
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={() => navigate('/timetable-upload')}
             className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-[var(--wfcts-primary)] shadow-sm transition-colors hover:bg-slate-50"
           >
             <span className="material-symbols-outlined text-base">document_scanner</span>
             Upload Timetable
-          </button>
+          </button> */}
         </div>
       </section>
 
