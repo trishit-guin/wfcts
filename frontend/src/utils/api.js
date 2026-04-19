@@ -11,6 +11,8 @@ const API_BASE_URL = (() => {
   return '/api'
 })()
 
+const REQUEST_TIMEOUT_MS = 30_000
+
 async function apiRequest(path, options = {}) {
   const { method = 'GET', token = '', body } = options
   const headers = {}
@@ -25,15 +27,22 @@ async function apiRequest(path, options = {}) {
     headers.Authorization = `Bearer ${token}`
   }
 
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
   let response
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
       body: body !== undefined ? (isFormData ? body : JSON.stringify(body)) : undefined,
+      signal: controller.signal,
     })
-  } catch {
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('Request timed out. Please try again.')
     throw new Error('Unable to reach the backend API. Make sure the backend server is running.')
+  } finally {
+    clearTimeout(timeoutId)
   }
 
   const text = await response.text()
@@ -312,11 +321,17 @@ export async function exportMonthlyRequest(token, params = {}) {
   const headers = {}
   if (token) headers.Authorization = `Bearer ${token}`
 
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
   let response
   try {
-    response = await fetch(`${API_BASE_URL}/data/export/monthly${suffix}`, { headers })
-  } catch {
+    response = await fetch(`${API_BASE_URL}/data/export/monthly${suffix}`, { headers, signal: controller.signal })
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('Export request timed out. Please try again.')
     throw new Error('Unable to reach the backend API.')
+  } finally {
+    clearTimeout(timeoutId)
   }
 
   if (!response.ok) {
