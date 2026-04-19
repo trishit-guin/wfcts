@@ -258,3 +258,85 @@ export function substituteCalendarEventRequest(token, id, substituteTeacherId) {
 export function cancelCalendarEventRequest(token, id) {
   return apiRequest(`/data/calendar-events/${id}/cancel`, { method: 'PATCH', token })
 }
+
+// ─── Weekly Progress ──────────────────────────────────────────────────────────
+
+export function getWeeklyProgressRequest(token, weekId) {
+  const suffix = weekId ? `?weekId=${encodeURIComponent(weekId)}` : ''
+  return apiRequest(`/data/weekly-progress${suffix}`, { token })
+}
+
+export function getWeeklyProgressHistoryRequest(token, limit = 12) {
+  return apiRequest(`/data/weekly-progress/history?limit=${limit}`, { token })
+}
+
+export function snapshotWeeklyProgressRequest(token, weekId) {
+  return apiRequest('/data/weekly-progress/snapshot', { method: 'POST', token, body: { weekId } })
+}
+
+// ─── Timetable Upload ─────────────────────────────────────────────────────────
+
+export function uploadTimetableRequest(token, formData) {
+  return apiRequest('/data/timetable-upload', { method: 'POST', token, body: formData })
+}
+
+export function getTimetableUploadRequest(token, id) {
+  return apiRequest(`/data/timetable-upload/${id}`, { token })
+}
+
+export function patchTimetableUploadRequest(token, id, payload) {
+  return apiRequest(`/data/timetable-upload/${id}`, { method: 'PATCH', token, body: payload })
+}
+
+export function saveTimetableUploadRequest(token, id) {
+  return apiRequest(`/data/timetable-upload/${id}/save`, { method: 'POST', token })
+}
+
+export function checkSlotConflictRequest(token, payload) {
+  return apiRequest('/data/timetable-slots/check-conflict', { method: 'POST', token, body: payload })
+}
+
+export function assignTimetableSlotRequest(token, slotId, payload) {
+  return apiRequest(`/data/timetable-slots/${slotId}/assign`, { method: 'PATCH', token, body: payload })
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+
+export async function exportMonthlyRequest(token, params = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') query.set(k, String(v))
+  })
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+
+  const headers = {}
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  let response
+  try {
+    response = await fetch(`${API_BASE_URL}/data/export/monthly${suffix}`, { headers })
+  } catch {
+    throw new Error('Unable to reach the backend API.')
+  }
+
+  if (!response.ok) {
+    const text = await response.text()
+    let message = 'Export failed'
+    try { message = JSON.parse(text).message || message } catch { /* ignore */ }
+    throw new Error(message)
+  }
+
+  const blob = await response.blob()
+  const cd = response.headers.get('Content-Disposition') || ''
+  const match = /filename="?([^"]+)"?/.exec(cd)
+  const filename = match ? match[1] : 'export.xlsx'
+
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}

@@ -73,6 +73,16 @@ const calendarEventSchema = new mongoose.Schema(
       ref: 'Task',
       default: null,
     },
+    source: {
+      type: String,
+      enum: ['manual', 'timetable'],
+      default: 'manual',
+    },
+    timetableSlotId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'TeacherTimetable',
+      default: null,
+    },
   },
   { timestamps: true },
 )
@@ -88,6 +98,7 @@ calendarEventSchema.set('toJSON', {
     ret.linkedSubstituteEntryId = ret.linkedSubstituteEntryId ? String(ret.linkedSubstituteEntryId) : ''
     ret.originalEventId = ret.originalEventId ? String(ret.originalEventId) : ''
     ret.linkedTaskId = ret.linkedTaskId ? String(ret.linkedTaskId) : ''
+    ret.timetableSlotId = ret.timetableSlotId ? String(ret.timetableSlotId) : ''
     ret.date = ret.date ? new Date(ret.date).toISOString().slice(0, 10) : ''
     delete ret._id
     return ret

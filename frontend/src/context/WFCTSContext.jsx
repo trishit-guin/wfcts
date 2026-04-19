@@ -25,6 +25,9 @@ import {
   completeCalendarEventRequest,
   substituteCalendarEventRequest,
   cancelCalendarEventRequest,
+  getWeeklyProgressRequest,
+  getWeeklyProgressHistoryRequest,
+  snapshotWeeklyProgressRequest,
 } from '../utils/api'
 import { useAuth } from './AuthContext'
 
@@ -39,6 +42,8 @@ const initialState = {
   timetableSlots: [],
   availableTeachers: [],
   calendarEvents: [],
+  weeklyProgress: null,
+  weeklyProgressHistory: [],
   settlementPlan: {
     generatedAt: '',
     totalPendingLinkedCredits: 0,
@@ -58,6 +63,8 @@ export function WFCTSProvider({ children }) {
   const [timetableSlots, setTimetableSlots] = useState(initialState.timetableSlots)
   const [availableTeachers, setAvailableTeachers] = useState(initialState.availableTeachers)
   const [calendarEvents, setCalendarEvents] = useState(initialState.calendarEvents)
+  const [weeklyProgress, setWeeklyProgress] = useState(initialState.weeklyProgress)
+  const [weeklyProgressHistory, setWeeklyProgressHistory] = useState(initialState.weeklyProgressHistory)
   const [settlementPlan, setSettlementPlan] = useState(initialState.settlementPlan)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -71,6 +78,8 @@ export function WFCTSProvider({ children }) {
     setTimetableSlots(initialState.timetableSlots)
     setAvailableTeachers(initialState.availableTeachers)
     setCalendarEvents(initialState.calendarEvents)
+    setWeeklyProgress(initialState.weeklyProgress)
+    setWeeklyProgressHistory(initialState.weeklyProgressHistory)
     setSettlementPlan(initialState.settlementPlan)
   }, [])
 
@@ -286,6 +295,26 @@ export function WFCTSProvider({ children }) {
     return response.calendarEvent
   }, [token])
 
+  // ─── Weekly Progress ────────────────────────────────────────────────────────
+
+  const fetchWeeklyProgress = useCallback(async (weekId) => {
+    const response = await getWeeklyProgressRequest(token, weekId)
+    setWeeklyProgress(response.progress || null)
+    return response.progress
+  }, [token])
+
+  const fetchWeeklyProgressHistory = useCallback(async (limit = 12) => {
+    const response = await getWeeklyProgressHistoryRequest(token, limit)
+    const history = response.history || []
+    setWeeklyProgressHistory(history)
+    return history
+  }, [token])
+
+  const snapshotWeeklyProgress = useCallback(async (weekId) => {
+    const response = await snapshotWeeklyProgressRequest(token, weekId)
+    return response.snapshot
+  }, [token])
+
   return (
     <WFCTSContext.Provider
       value={{
@@ -322,6 +351,11 @@ export function WFCTSProvider({ children }) {
         completeCalendarEvent,
         substituteCalendarEvent,
         cancelCalendarEvent,
+        weeklyProgress,
+        weeklyProgressHistory,
+        fetchWeeklyProgress,
+        fetchWeeklyProgressHistory,
+        snapshotWeeklyProgress,
         refreshData,
         refreshSettlementPlan,
       }}

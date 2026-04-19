@@ -37,6 +37,16 @@ const workEntrySchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    source: {
+      type: String,
+      enum: ['manual', 'calendar', 'timetable'],
+      default: 'manual',
+    },
+    calendarEventId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CalendarEvent',
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -49,6 +59,7 @@ workEntrySchema.set('toJSON', {
     ret.id = String(ret._id)
     ret.teacherId = String(ret.teacherId)
     ret.date = ret.date ? new Date(ret.date).toISOString().slice(0, 10) : ''
+    ret.calendarEventId = ret.calendarEventId ? String(ret.calendarEventId) : ''
     delete ret._id
     return ret
   },

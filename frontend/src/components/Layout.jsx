@@ -10,6 +10,7 @@ function pageMeta(pathname, role) {
     '/credits': { eyebrow: 'Credit Ledger', title: 'Credits' },
     '/timetable': { eyebrow: 'Academic Staff Portal', title: 'Timetable' },
     '/calendar': { eyebrow: 'Work Scheduling Engine', title: 'Calendar' },
+    '/weekly-progress': { eyebrow: 'Workload Compliance', title: 'Weekly Progress' },
     '/profile': { eyebrow: 'Account Settings', title: 'Profile' },
     '/industry-sessions': { eyebrow: 'Professional Outreach', title: 'Sessions' },
     '/subject-hours': { eyebrow: 'Academic Planning', title: 'Subject Hours' },

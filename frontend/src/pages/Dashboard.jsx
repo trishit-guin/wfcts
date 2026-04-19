@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
@@ -136,10 +136,67 @@ function ScheduleItem({ slot, highlight }) {
   )
 }
 
+function WeeklyProgressWidget({ weeklyProgress, onNavigate }) {
+  if (!weeklyProgress) return null
+
+  const teachPct = weeklyProgress.percentages?.teaching ?? 0
+  const otherPct = weeklyProgress.percentages?.other ?? 0
+
+  return (
+    <div className="wfcts-card p-6">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="font-headline text-base font-bold text-(--wfcts-primary)">Weekly Progress</h3>
+          <p className="text-xs text-(--wfcts-muted)">{weeklyProgress.weekId} • 40h target</p>
+        </div>
+        <button
+          onClick={() => onNavigate('/weekly-progress')}
+          className="text-xs font-bold text-(--wfcts-primary) hover:opacity-75"
+        >
+          Full Report
+        </button>
+      </div>
+      <div className="space-y-3">
+        <div>
+          <div className="flex items-center justify-between text-xs font-semibold mb-1">
+            <span className="text-slate-600">Teaching</span>
+            <span className="text-(--wfcts-primary)">{weeklyProgress.teachingHours}h / 20h</span>
+          </div>
+          <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-linear-to-r from-(--wfcts-primary) to-[#4f7bff]"
+              style={{ width: `${teachPct}%` }}
+            />
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center justify-between text-xs font-semibold mb-1">
+            <span className="text-slate-600">Other Duties</span>
+            <span className="text-(--wfcts-secondary)">{weeklyProgress.otherHours}h / 20h</span>
+          </div>
+          <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-linear-to-r from-(--wfcts-secondary) to-teal-400"
+              style={{ width: `${otherPct}%` }}
+            />
+          </div>
+        </div>
+      </div>
+      <p className="mt-3 text-right text-xs font-bold text-slate-500">
+        Total: {weeklyProgress.totalHours}h / 40h ({weeklyProgress.percentages?.total ?? 0}%)
+      </p>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { workEntries, substituteEntries, tasks, timetableSlots, industrySessions } = useWFCTS()
+  const { workEntries, substituteEntries, tasks, timetableSlots, industrySessions, weeklyProgress, fetchWeeklyProgress } = useWFCTS()
+
+  useEffect(() => {
+    fetchWeeklyProgress().catch(() => {})
+  }, [fetchWeeklyProgress])
 
   const teacherEntries = useMemo(
     () => workEntries.filter((entry) => entry.teacherId === user?.id),
@@ -343,6 +400,8 @@ export default function Dashboard() {
         </div>
 
         <div className="space-y-6">
+          <WeeklyProgressWidget weeklyProgress={weeklyProgress} onNavigate={navigate} />
+
           <div className="relative min-h-[28rem] overflow-hidden rounded-[2rem] bg-[var(--wfcts-primary)] p-8 text-white shadow-[0_22px_60px_rgba(30,58,138,0.22)]">
             <div className="absolute right-[-10%] top-[-14%] h-64 w-64 rounded-full bg-white/6 blur-3xl" />
             <div className="relative z-10 flex h-full flex-col">

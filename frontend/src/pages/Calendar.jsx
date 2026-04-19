@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
-import { getManagersRequest } from '../utils/api'
+import { getManagersRequest, exportMonthlyRequest } from '../utils/api'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -878,8 +878,24 @@ export default function Calendar() {
   const [editingEvent, setEditingEvent] = useState(null)
   const [managers, setManagers] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState('')
   const gridRef = useRef(null)
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      await exportMonthlyRequest(token, {
+        year: currentDate.getFullYear(),
+        month: currentDate.getMonth() + 1,
+        format: 'xlsx',
+      })
+    } catch (e) {
+      setError(e.message || 'Export failed')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const weekStart = getWeekStart(currentDate)
   const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6)
@@ -988,6 +1004,14 @@ export default function Calendar() {
               {pendingApprovalCount} pending approval
             </span>
           )}
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+          >
+            <SymIcon name={isExporting ? 'progress_activity' : 'download'} className={`text-base ${isExporting ? 'animate-spin' : ''}`} />
+            Export
+          </button>
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 rounded-xl bg-(--wfcts-primary) px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-(--wfcts-primary)/20 transition-all hover:-translate-y-0.5"

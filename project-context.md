@@ -1,7 +1,7 @@
 # WFCTS Project Context
 
-Last updated: 2026-04-16 (Work Scheduling Engine + Calendar UI added)
-Workspace root: D:/inhouse/wfcts
+Last updated: 2026-04-19 (Timetable Upload OCR + Weekly Progress + Export System + Cron Scheduler)
+Workspace root: wfcts/
 
 ## Project Snapshot
 WFCTS is a full-stack React + Vite + Express application for teacher workload management, class-wise subject-hour tracking, substitution credits, tasks, industry sessions, fairness monitoring, and timetable-based substitute suggestion.
@@ -22,6 +22,12 @@ Current implementation status:
 - recurring weekly timetable slots are supported
 - free-teacher suggestions are automatic from timetable overlap rules
 - Work Scheduling Engine with Calendar UI is implemented (CalendarEvent model, week/month view, fairness weights, delegation, substitution linkage, auto WorkEntry on completion)
+- Timetable Upload: OCR (tesseract.js + pdf-parse) → rule-based parser → editable slot preview → 16-week CalendarEvent bulk creation
+- Weekly Progress: 40h target (20h teaching + 20h other), on-demand compute, history snapshots, arc progress UI
+- Export System: XLSX/CSV monthly export with Content-Disposition binary response
+- Cron scheduler: Monday 00:05 auto-snapshot all teacher progress for the previous ISO week
+- Admin/HOD dashboards: quick-action tiles for timetable upload + slot management
+- Teacher dashboard: weekly progress widget with live teaching/other hour bars
 
 ## Stack and Tooling
 Frontend:
@@ -78,6 +84,8 @@ Protected data API routes:
 - POST /api/data/timetable-slots
 - PATCH /api/data/timetable-slots/:slotId
 - DELETE /api/data/timetable-slots/:slotId
+- POST /api/data/timetable-slots/check-conflict
+- PATCH /api/data/timetable-slots/:id/assign (assigns teacher + creates 16-week CalendarEvents)
 - GET /api/data/available-teachers
 - POST /api/data/tasks
 - PATCH /api/data/tasks/:taskId/complete
@@ -87,9 +95,17 @@ Protected data API routes:
 - PATCH /api/data/calendar-events/:id
 - PATCH /api/data/calendar-events/:id/approve (ADMIN/HOD only)
 - PATCH /api/data/calendar-events/:id/reject (ADMIN/HOD only)
-- PATCH /api/data/calendar-events/:id/complete (auto-creates WorkEntry)
+- PATCH /api/data/calendar-events/:id/complete (auto-creates WorkEntry, duplicate-guarded)
 - PATCH /api/data/calendar-events/:id/substitute (auto-creates SubstituteEntry pair + new CalendarEvent)
 - PATCH /api/data/calendar-events/:id/cancel
+- GET /api/data/weekly-progress?weekId= (on-demand compute for authenticated user)
+- GET /api/data/weekly-progress/history?limit= (last N WeeklySnapshots)
+- POST /api/data/weekly-progress/snapshot (upsert WeeklySnapshot)
+- POST /api/data/timetable-upload (file upload → OCR → parse → return parsedSlots)
+- GET /api/data/timetable-upload/:id
+- PATCH /api/data/timetable-upload/:id (update parsedSlots)
+- POST /api/data/timetable-upload/:id/save (create slots + 16-week CalendarEvents)
+- GET /api/data/export/monthly?year=&month=&teacherId=&format=xlsx|csv (binary download)
 
 Seed behavior:
 - backend seeds users, work entries, substitute entries, timetable slots, tasks, and industry sessions when DB has no users
@@ -165,8 +181,14 @@ Admin + HOD:
 All authenticated roles:
 - /subject-hours
 - /timetable
-- /calendar
+- /calendar (with Export button → XLSX download)
 - /profile
+
+Teacher-only (added 2026-04-19):
+- /weekly-progress
+
+Admin + HOD (added 2026-04-19):
+- /timetable-upload
 
 Fallback:
 - * -> /
@@ -178,22 +200,22 @@ Teacher tabs:
 - Dashboard
 - Tasks
 - Calendar
+- Progress (→ /weekly-progress)
 - Credits
-- Slots
 
 Admin tabs:
 - Dashboard
 - Assign
 - Calendar
+- Upload (→ /timetable-upload)
 - Fairness
-- Slots
 
 HOD tabs:
 - Dashboard
 - Assign
 - Calendar
+- Upload (→ /timetable-upload)
 - Fairness
-- Slots
 
 Layout behavior:
 - frontend/src/components/Layout.jsx renders a glass sticky header with top-right profile access
@@ -204,12 +226,14 @@ Layout behavior:
 ## MongoDB Data Model
 Key collections/models:
 - User
-- WorkEntry
+- WorkEntry (added: source, calendarEventId)
 - SubstituteEntry
-- TeacherTimetable
+- TeacherTimetable (added: eventType, assignedBy)
 - Task
 - IndustrySession
-- CalendarEvent
+- CalendarEvent (with FAIRNESS_WEIGHTS, EVENT_WORK_TYPE_MAP)
+- WeeklySnapshot (userId+weekId unique index, 40h breakdown)
+- TimetableUpload (OCR pipeline state, parsedSlots)
 
 User fields:
 - name
@@ -328,8 +352,15 @@ Current action functions:
 - completeCalendarEvent(id) – also updates workEntries slice
 - substituteCalendarEvent(id, substituteTeacherId) – also updates substituteEntries + refreshes settlement
 - cancelCalendarEvent(id)
+- fetchWeeklyProgress(weekId?) – sets weeklyProgress state
+- fetchWeeklyProgressHistory(limit) – sets weeklyProgressHistory state
+- snapshotWeeklyProgress(weekId?) – upserts WeeklySnapshot
 - refreshData()
 - refreshSettlementPlan()
+
+State slices added (2026-04-19):
+- weeklyProgress: current week progress object (null if not yet fetched)
+- weeklyProgressHistory: array of WeeklySnapshot records
 
 Behavior details:
 - data is loaded from /api/data/bootstrap
@@ -537,6 +568,30 @@ Runtime and setup:
 - backend/package.json
 - backend/.env.example
 
+## New Utilities (added 2026-04-19)
+- backend/src/utils/ocrParser.js — tesseract.js (images) + pdf-parse (PDFs) → raw text
+- backend/src/utils/timetableParser.js — rule-based parser: list format, grid format, fallback scan
+- backend/src/utils/weeklyProgress.js — computeWeekProgress, getISOWeekId, getWeekBounds, createTimetableCalendarEvents
+
+## New Models (added 2026-04-19)
+- backend/src/models/WeeklySnapshot.js — 40h weekly compliance snapshots
+- backend/src/models/TimetableUpload.js — OCR upload pipeline state
+
+## New Pages (added 2026-04-19)
+- frontend/src/pages/TimetableUpload.jsx — 3-step: dropzone upload → editable slot grid → save (16-week schedule)
+- frontend/src/pages/WeeklyProgress.jsx — arc progress indicators, current week + 16-week history
+
+## Cron Scheduler (added 2026-04-19)
+- backend/server.js schedules node-cron '5 0 * * 1' (Monday 00:05)
+- Iterates all TEACHER users, upserts WeeklySnapshot for previous ISO week
+
+## Key Design Rules (2026-04-19)
+- Weekly target: 20h teaching + 20h other = 40h total
+- Teaching hours = completed LECTURE + LAB + SUBSTITUTE_COVER events (skip SUBSTITUTED status)
+- 16-week projection: timetable upload/assign creates CalendarEvents from today forward
+- Export: xlsx binary with Content-Disposition; frontend triggers browser download via URL.createObjectURL
+- Tailwind v4: canonical syntax text-(--wfcts-primary), NOT text-[var(--wfcts-primary)]
+
 ## Recommended Next Work Items
 1. Add edit/delete endpoints for work entries, substitute entries, tasks, and industry sessions.
 2. Move subject-hour required-hour config from frontend constants to backend/MongoDB.
@@ -544,7 +599,7 @@ Runtime and setup:
 4. Add automated tests for auth, role guards, timetable overlap validation, and settlement correctness.
 5. Add date-specific timetable override support (holidays/exams) on top of weekly slots.
 6. Consider hour-weighted settlement instead of entry-count settlement.
-7. Add conflict detection for CalendarEvents (warn if teacher already has a slot at that time).
-8. Show upcoming calendar events on the teacher Dashboard.
-9. Add iCal (.ics) export for CalendarEvents (no external dependency needed).
-10. Add CalendarEvent seeding to the seed script for demo data.
+7. Add iCal (.ics) export for CalendarEvents.
+8. Add CalendarEvent seeding to the seed script for demo data.
+9. Teacher dashboard: show upcoming CalendarEvents (this week) in the schedule panel.
+10. TimetableUpload: support bulk teacher assignment (assign all unassigned to one teacher).

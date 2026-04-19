@@ -44,6 +44,16 @@ const teacherTimetableSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    eventType: {
+      type: String,
+      enum: ['LECTURE', 'LAB', 'ADMIN', 'EXTRA_DUTY', 'MEETING'],
+      default: 'LECTURE',
+    },
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -63,6 +73,7 @@ teacherTimetableSchema.set('toJSON', {
   transform: (_doc, ret) => {
     ret.id = String(ret._id)
     ret.teacherId = String(ret.teacherId)
+    ret.assignedBy = ret.assignedBy ? String(ret.assignedBy) : ''
     delete ret._id
     return ret
   },

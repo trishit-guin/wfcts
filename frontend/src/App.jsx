@@ -18,6 +18,8 @@ import WorkloadFairnessDashboard from './pages/WorkloadFairnessDashboard'
 import SubjectHours from './pages/SubjectHours'
 import Timetable from './pages/Timetable'
 import Calendar from './pages/Calendar'
+import TimetableUpload from './pages/TimetableUpload'
+import WeeklyProgress from './pages/WeeklyProgress'
 
 function RoleHomeRedirect() {
   const { user } = useAuth()
@@ -122,6 +124,16 @@ function App() {
             }
           />
           <Route
+            path="/weekly-progress"
+            element={
+              <ProtectedRoute roles={['TEACHER']}>
+                <Layout>
+                  <WeeklyProgress />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/profile"
             element={
               <ProtectedRoute roles={['TEACHER', 'ADMIN', 'HOD']}>
@@ -168,6 +180,16 @@ function App() {
               <ProtectedRoute roles={['ADMIN', 'HOD']}>
                 <Layout>
                   <WorkloadFairnessDashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/timetable-upload"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'HOD']}>
+                <Layout>
+                  <TimetableUpload />
                 </Layout>
               </ProtectedRoute>
             }

@@ -9,7 +9,12 @@ const TeacherTimetable = require('../models/TeacherTimetable')
 const User = require('../models/User')
 const WorkEntry = require('../models/WorkEntry')
 const { CalendarEvent, FAIRNESS_WEIGHTS, EVENT_WORK_TYPE_MAP } = require('../models/CalendarEvent')
+const WeeklySnapshot = require('../models/WeeklySnapshot')
+const TimetableUpload = require('../models/TimetableUpload')
 const { computeChainSettlements } = require('../utils/substituteSettlement')
+const { computeWeekProgress, getISOWeekId, createTimetableCalendarEvents } = require('../utils/weeklyProgress')
+const { extractText } = require('../utils/ocrParser')
+const { parseTimetableText } = require('../utils/timetableParser')
 
 const router = express.Router()
 
@@ -1073,6 +1078,13 @@ router.patch('/calendar-events/:id/complete', async (req, res, next) => {
     const endMin = toMinutes(event.endTime, 'endTime')
     const hours = Math.max(0.5, (endMin - startMin) / 60)
 
+    // Duplicate guard — if already completed, return existing entry
+    if (event.linkedWorkEntryId) {
+      const error = new Error('Event already completed and work entry exists')
+      error.statusCode = 400
+      throw error
+    }
+
     const workEntry = await WorkEntry.create({
       teacherId: event.assignedTo,
       subject: event.subject || event.title,
@@ -1081,6 +1093,8 @@ router.patch('/calendar-events/:id/complete', async (req, res, next) => {
       workType: EVENT_WORK_TYPE_MAP[event.eventType] || 'Admin',
       description: `Logged via calendar: ${event.title}`,
       date: event.date,
+      source: 'calendar',
+      calendarEventId: event._id,
     })
 
     event.status = 'COMPLETED'
@@ -1222,6 +1236,371 @@ router.patch('/calendar-events/:id/cancel', async (req, res, next) => {
     event.status = 'CANCELLED'
     await event.save()
     res.json({ calendarEvent: event.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ─── Weekly Progress ──────────────────────────────────────────────────────────
+
+router.get('/weekly-progress', async (req, res, next) => {
+  try {
+    const weekId = req.query.weekId || getISOWeekId(new Date())
+    let targetUserId = req.user._id
+
+    if (!isTeacher(req.user) && req.query.teacherId) {
+      targetUserId = req.query.teacherId
+    }
+
+    const progress = await computeWeekProgress(targetUserId, weekId)
+    res.json(progress)
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.get('/weekly-progress/history', async (req, res, next) => {
+  try {
+    let targetUserId = req.user._id
+    if (!isTeacher(req.user) && req.query.teacherId) {
+      targetUserId = req.query.teacherId
+    }
+
+    const limit = Math.min(Number(req.query.limit) || 12, 52)
+    const snapshots = await WeeklySnapshot.find({ userId: targetUserId })
+      .sort({ weekId: -1 })
+      .limit(limit)
+
+    res.json({ snapshots: serializeCollection(snapshots) })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.post('/weekly-progress/snapshot', async (req, res, next) => {
+  try {
+    let targetUserId = req.user._id
+    if (!isTeacher(req.user) && req.body?.teacherId) {
+      targetUserId = req.body.teacherId
+    }
+
+    const weekId = req.body?.weekId || getISOWeekId(new Date())
+    const progress = await computeWeekProgress(targetUserId, weekId)
+
+    const snapshot = await WeeklySnapshot.findOneAndUpdate(
+      { userId: targetUserId, weekId },
+      {
+        userId: targetUserId,
+        weekId,
+        weekStart: new Date(progress.weekStart),
+        weekEnd: new Date(progress.weekEnd),
+        teachingHours: progress.teachingHours,
+        otherHours: progress.otherHours,
+        totalHours: progress.totalHours,
+        breakdown: progress.breakdown,
+      },
+      { upsert: true, new: true },
+    )
+
+    res.json({ snapshot: snapshot.toJSON(), progress })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ─── Timetable Upload (OCR → Parse → Preview) ─────────────────────────────────
+
+router.post('/timetable-upload', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      const error = new Error('No file uploaded')
+      error.statusCode = 400
+      throw error
+    }
+
+    const { buffer, mimetype, originalname } = req.file
+    const rawOCRText = await extractText(buffer, mimetype)
+    const parsedSlots = parseTimetableText(rawOCRText)
+
+    const upload = await TimetableUpload.create({
+      uploadedBy: req.user._id,
+      filename: originalname,
+      mimeType: mimetype,
+      rawOCRText,
+      parsedSlots,
+      status: 'parsed',
+    })
+
+    res.status(201).json({ upload: upload.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.get('/timetable-upload/:uploadId', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+  try {
+    const upload = await TimetableUpload.findById(req.params.uploadId)
+    if (!upload) {
+      const error = new Error('Upload not found')
+      error.statusCode = 404
+      throw error
+    }
+    res.json({ upload: upload.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.patch('/timetable-upload/:uploadId', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+  try {
+    const upload = await TimetableUpload.findById(req.params.uploadId)
+    if (!upload) {
+      const error = new Error('Upload not found')
+      error.statusCode = 404
+      throw error
+    }
+
+    if (req.body?.parsedSlots !== undefined) {
+      upload.parsedSlots = req.body.parsedSlots
+    }
+    await upload.save()
+    res.json({ upload: upload.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.post('/timetable-upload/:uploadId/save', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+  try {
+    const upload = await TimetableUpload.findById(req.params.uploadId)
+    if (!upload) {
+      const error = new Error('Upload not found')
+      error.statusCode = 404
+      throw error
+    }
+
+    const slots = upload.parsedSlots.filter((s) => s.teacherId && s.startTime && s.endTime && s.day !== undefined)
+    if (slots.length === 0) {
+      const error = new Error('No valid assigned slots to save. Please assign teachers first.')
+      error.statusCode = 400
+      throw error
+    }
+
+    const createdSlots = []
+    const skipped = []
+
+    for (const s of slots) {
+      try {
+        await ensureNoSlotConflict({
+          teacherId: s.teacherId,
+          dayOfWeek: s.day,
+          startTime: s.startTime,
+          endTime: s.endTime,
+        })
+
+        const slot = await TeacherTimetable.create({
+          teacherId: s.teacherId,
+          dayOfWeek: s.day,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          subject: s.subject || '',
+          className: s.className || '',
+          location: s.location || '',
+          eventType: s.eventType || 'LECTURE',
+          assignedBy: req.user._id,
+        })
+
+        await createTimetableCalendarEvents(slot, req.user._id)
+        createdSlots.push(slot.toJSON())
+      } catch {
+        skipped.push({ slot: s, reason: 'conflict or invalid' })
+      }
+    }
+
+    upload.status = 'saved'
+    await upload.save()
+
+    res.json({
+      saved: createdSlots.length,
+      skipped: skipped.length,
+      timetableSlots: createdSlots,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ─── Timetable Assignment (conflict check + direct assign) ────────────────────
+
+router.post('/timetable-slots/check-conflict', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+  try {
+    const { teacherId, dayOfWeek, startTime, endTime } = req.body || {}
+
+    const day = Number(dayOfWeek)
+    if (!teacherId || !startTime || !endTime || !Number.isInteger(day)) {
+      const error = new Error('teacherId, dayOfWeek, startTime, and endTime are required')
+      error.statusCode = 400
+      throw error
+    }
+
+    const startMin = toMinutes(startTime, 'startTime')
+    const endMin = toMinutes(endTime, 'endTime')
+
+    const existingSlots = await TeacherTimetable.find({ teacherId, dayOfWeek: day })
+    const conflictSlot = existingSlots.find((slot) => {
+      const slotStart = toMinutes(slot.startTime, 'startTime')
+      const slotEnd = toMinutes(slot.endTime, 'endTime')
+      return hasOverlap(startMin, endMin, slotStart, slotEnd)
+    })
+
+    res.json({
+      hasConflict: Boolean(conflictSlot),
+      conflictingSlot: conflictSlot ? conflictSlot.toJSON() : null,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.patch('/timetable-slots/:slotId/assign', requireRoles('ADMIN', 'HOD'), async (req, res, next) => {
+  try {
+    const slot = await TeacherTimetable.findById(req.params.slotId)
+    if (!slot) {
+      const error = new Error('Timetable slot not found')
+      error.statusCode = 404
+      throw error
+    }
+
+    const { teacherId } = req.body || {}
+    if (!teacherId) {
+      const error = new Error('teacherId is required')
+      error.statusCode = 400
+      throw error
+    }
+
+    const teacher = await User.findOne({ _id: teacherId, role: 'TEACHER' })
+    if (!teacher) {
+      const error = new Error('Teacher not found')
+      error.statusCode = 404
+      throw error
+    }
+
+    // Check conflict with new teacher (excluding current slot)
+    await ensureNoSlotConflict({
+      teacherId: teacher._id,
+      dayOfWeek: slot.dayOfWeek,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      excludeSlotId: slot._id,
+    })
+
+    slot.teacherId = teacher._id
+    slot.assignedBy = req.user._id
+    await slot.save()
+
+    // Auto-create 16 weeks of CalendarEvents for this teacher
+    await createTimetableCalendarEvents(slot, req.user._id)
+
+    res.json({ timetableSlot: slot.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+
+router.get('/export/monthly', async (req, res, next) => {
+  try {
+    const XLSX = require('xlsx')
+    const { year, month, format = 'xlsx' } = req.query
+
+    const y = Number(year) || new Date().getFullYear()
+    const m = Number(month) || new Date().getMonth() + 1
+
+    const rangeStart = new Date(y, m - 1, 1)
+    const rangeEnd = new Date(y, m, 0, 23, 59, 59, 999)
+
+    let targetFilter = {}
+    if (isTeacher(req.user)) {
+      targetFilter = { teacherId: req.user._id }
+    } else if (req.query.teacherId) {
+      targetFilter = { teacherId: req.query.teacherId }
+    }
+
+    const teachers = await User.find({ role: 'TEACHER' })
+    const nameMap = new Map(teachers.map((t) => [String(t._id), t.name]))
+
+    // Gather completed calendar events
+    const evtFilter = { date: { $gte: rangeStart, $lte: rangeEnd }, status: 'COMPLETED' }
+    if (isTeacher(req.user)) evtFilter.assignedTo = req.user._id
+    else if (req.query.teacherId) evtFilter.assignedTo = req.query.teacherId
+
+    const [events, workLogs] = await Promise.all([
+      CalendarEvent.find(evtFilter).sort({ date: 1 }),
+      WorkEntry.find({ ...targetFilter, date: { $gte: rangeStart, $lte: rangeEnd }, source: 'manual' }).sort({ date: 1 }),
+    ])
+
+    const rows = []
+
+    for (const evt of events) {
+      const [sh, sm] = evt.startTime.split(':').map(Number)
+      const [eh, em] = evt.endTime.split(':').map(Number)
+      const hrs = Math.max(0.5, ((eh * 60 + em) - (sh * 60 + sm)) / 60)
+      rows.push({
+        Date: new Date(evt.date).toISOString().slice(0, 10),
+        Teacher: nameMap.get(String(evt.assignedTo)) || String(evt.assignedTo),
+        Title: evt.title,
+        Type: evt.eventType,
+        Subject: evt.subject || '',
+        Class: evt.className || '',
+        Location: evt.location || '',
+        'Start Time': evt.startTime,
+        'End Time': evt.endTime,
+        Hours: Number(hrs.toFixed(2)),
+        Source: evt.source || 'manual',
+        Status: evt.status,
+        'Fairness Weight': evt.fairnessWeight,
+        'Fairness Points': Number((evt.fairnessWeight * hrs).toFixed(2)),
+      })
+    }
+
+    for (const log of workLogs) {
+      rows.push({
+        Date: log.date ? new Date(log.date).toISOString().slice(0, 10) : '',
+        Teacher: nameMap.get(String(log.teacherId)) || String(log.teacherId),
+        Title: log.description || log.subject,
+        Type: log.workType,
+        Subject: log.subject || '',
+        Class: log.className || '',
+        Location: '',
+        'Start Time': '',
+        'End Time': '',
+        Hours: Number(log.hours),
+        Source: 'manual',
+        Status: 'Completed',
+        'Fairness Weight': '',
+        'Fairness Points': '',
+      })
+    }
+
+    rows.sort((a, b) => a.Date.localeCompare(b.Date))
+
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, `${y}-${String(m).padStart(2, '0')}`)
+
+    const filename = `wfcts-export-${y}-${String(m).padStart(2, '0')}.${format === 'csv' ? 'csv' : 'xlsx'}`
+    const contentType = format === 'csv'
+      ? 'text/csv'
+      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+    const fileBuffer = format === 'csv'
+      ? Buffer.from(XLSX.utils.sheet_to_csv(ws))
+      : XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    res.setHeader('Content-Type', contentType)
+    res.send(fileBuffer)
   } catch (error) {
     next(error)
   }
