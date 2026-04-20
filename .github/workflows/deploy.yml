@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'wfcts/backend/**'
-      - '.github/workflows/deploy-backend.yml'
+      - 'backend/**'
+      - '.github/workflows/deploy.yml'
 
 # Prevent concurrent deploys — never cancel an in-flight deploy
 concurrency:
@@ -45,7 +45,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: ./wfcts/backend
+          context: ./backend
           push: true
           # Tag with git SHA (immutable) and latest
           tags: |
