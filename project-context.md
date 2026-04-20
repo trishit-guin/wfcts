@@ -1,6 +1,6 @@
 # WFCTS Project Context
 
-Last updated: 2026-04-19 (Timetable Upload OCR + Weekly Progress + Export System + Cron Scheduler)
+Last updated: 2026-04-20 (Deployment split — Vercel frontend + Docker/ECR/EC2 backend + CI/CD)
 Workspace root: wfcts/
 
 ## Project Snapshot
@@ -28,6 +28,52 @@ Current implementation status:
 - Cron scheduler: Monday 00:05 auto-snapshot all teacher progress for the previous ISO week
 - Admin/HOD dashboards: quick-action tiles for timetable upload + slot management
 - Teacher dashboard: weekly progress widget with live teaching/other hour bars
+
+## Deployment & Infrastructure (added 2026-04-20)
+
+Architecture:
+- Frontend: Vercel (https://wfcts.vercel.app) — auto-deploys on push to main
+- Backend: Docker container on AWS EC2 (43.205.216.124), image stored in Amazon ECR
+- Database: MongoDB Atlas (cluster0.1kjgx02.mongodb.net) — EC2 IP must be whitelisted in Atlas Network Access
+- CI/CD: GitHub Actions (.github/workflows/deploy.yml) — triggers on backend/ changes only
+
+How frontend reaches backend:
+- Vercel rewrites /api/:path* → http://43.205.216.124:3000/api/:path* server-side
+- This avoids mixed-content (HTTPS→HTTP) since browser never makes the HTTP call directly
+- VITE_API_URL is NOT set in Vercel; frontend/src/utils/api.js defaults to relative /api
+- frontend/vercel.json controls both the API proxy rewrite and SPA catch-all
+
+CI/CD flow (backend):
+- GitHub Actions builds Docker image on ubuntu runner with GHA layer cache
+- Pushes to ECR tagged with git SHA + latest
+- SSHs into EC2: docker pull → docker stop/rm old → docker run new → health check with retries → prune old images
+- IMAGE is constructed from secrets.ECR_REGISTRY + ECR_REPOSITORY env + github.sha (not passed via job outputs)
+
+GitHub Actions secrets required:
+- AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
+- ECR_REGISTRY (e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com)
+- EC2_HOST, EC2_USER, EC2_SSH_KEY
+
+EC2 runtime:
+- Backend runs as docker container named wfcts-backend, port 3000
+- Env loaded from ~/app/.env on EC2
+- Uploads persisted in docker named volume wfcts-uploads
+
+EC2 security group ports open:
+- 22 (SSH, your IP only)
+- 3000 (API, 0.0.0.0/0)
+
+Local dev:
+- Backend: cd wfcts && docker compose up (builds from source, same image as prod)
+- Frontend: cd wfcts/frontend && npm run dev (Vite proxy forwards /api → localhost:3000)
+- vite.config.js allowedHosts includes localhost, 127.0.0.1, and ngrok domains
+
+Key infra files:
+- wfcts/.github/workflows/deploy.yml — backend CI/CD
+- wfcts/frontend/vercel.json — Vercel SPA routing + API proxy
+- wfcts/docker-compose.yml — local dev (backend only)
+- wfcts/backend/.dockerignore — excludes node_modules, .env from Docker build
+- wfcts/backend/.env.example — documents required env vars
 
 ## Stack and Tooling
 Frontend:
