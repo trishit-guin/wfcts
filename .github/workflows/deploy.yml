@@ -91,11 +91,22 @@ jobs:
               -v wfcts-uploads:/app/public/uploads \
               "$IMAGE"
 
+            echo "==> Waiting for container to initialise"
+            sleep 15
+
             echo "==> Health check"
-            for i in 1 2 3 4 5; do
-              sleep 5
-              curl -sf http://localhost:3000/api/health && break
-              [ "$i" -eq 5 ] && { echo "Health check failed — rolling back"; docker stop wfcts-backend; exit 1; }
+            for i in 1 2 3 4 5 6 7 8; do
+              if curl -sf http://localhost:3000/api/health; then
+                break
+              fi
+              if [ "$i" -eq 8 ]; then
+                echo "Health check failed — container logs:"
+                docker logs --tail 50 wfcts-backend
+                docker stop wfcts-backend
+                exit 1
+              fi
+              echo "Attempt $i failed, retrying in 10s..."
+              sleep 10
             done
 
             echo "==> Pruning old images (keeps last 72 h)"
