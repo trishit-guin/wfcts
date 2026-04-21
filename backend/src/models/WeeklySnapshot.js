@@ -10,6 +10,7 @@ const weeklySnapshotSchema = new mongoose.Schema(
     teachingHours: { type: Number, default: 0 },
     otherHours: { type: Number, default: 0 },
     totalHours: { type: Number, default: 0 },
+    teachingTarget: { type: Number, default: 20 },
 
     breakdown: {
       lectureHours:    { type: Number, default: 0 },

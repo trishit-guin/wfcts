@@ -1,7 +1,6 @@
 const TimetableUpload = require('../models/TimetableUpload')
 const TeacherTimetable = require('../models/TeacherTimetable')
-const { extractText } = require('../utils/ocrParser')
-const { parseTimetableText } = require('../utils/timetableParser')
+const { extractTimetableWithAI } = require('../utils/aiParser')
 const { createTimetableCalendarEvents } = require('../utils/weeklyProgress')
 const { ensureNoSlotConflict } = require('../utils/routeHelpers')
 
@@ -14,8 +13,7 @@ async function uploadTimetable(req, res, next) {
     }
 
     const { buffer, mimetype, originalname } = req.file
-    const rawOCRText = await extractText(buffer, mimetype)
-    let parsedSlots = parseTimetableText(rawOCRText)
+    let parsedSlots = await extractTimetableWithAI(buffer, mimetype)
 
     if (req.user.role === 'TEACHER') {
       const selfId = String(req.user._id)
@@ -29,7 +27,7 @@ async function uploadTimetable(req, res, next) {
       uploadedBy: req.user._id,
       filename: originalname,
       mimeType: mimetype,
-      rawOCRText,
+      rawOCRText: '',
       parsedSlots,
       status: 'parsed',
     })

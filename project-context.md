@@ -1,6 +1,6 @@
 # WFCTS Project Context
 
-Last updated: 2026-04-20 (Deployment split — Vercel frontend + Docker/ECR/EC2 backend + CI/CD)
+Last updated: 2026-04-20 (Gemini AI timetable extraction + dynamic teaching target + calendar-based progress)
 Workspace root: wfcts/
 
 ## Project Snapshot
@@ -615,8 +615,9 @@ Runtime and setup:
 - backend/.env.example
 
 ## New Utilities (added 2026-04-19)
-- backend/src/utils/ocrParser.js — tesseract.js (images) + pdf-parse (PDFs) → raw text
-- backend/src/utils/timetableParser.js — rule-based parser: list format, grid format, fallback scan
+- backend/src/utils/aiParser.js — Gemini 1.5 Flash vision API → structured JSON slots directly (replaced tesseract.js + timetableParser.js)
+- backend/src/utils/ocrParser.js — DEPRECATED, replaced by aiParser.js
+- backend/src/utils/timetableParser.js — DEPRECATED, replaced by aiParser.js
 - backend/src/utils/weeklyProgress.js — computeWeekProgress, getISOWeekId, getWeekBounds, createTimetableCalendarEvents
 
 ## New Models (added 2026-04-19)
@@ -631,12 +632,16 @@ Runtime and setup:
 - backend/server.js schedules node-cron '5 0 * * 1' (Monday 00:05)
 - Iterates all TEACHER users, upserts WeeklySnapshot for previous ISO week
 
-## Key Design Rules (2026-04-19)
-- Weekly target: 20h teaching + 20h other = 40h total
-- Teaching hours = completed LECTURE + LAB + SUBSTITUTE_COVER events (skip SUBSTITUTED status)
+## Key Design Rules (updated 2026-04-20)
+- Teaching target = sum of teacher's actual TeacherTimetable slot hours per week (dynamic, not hardcoded 20h); falls back to 20h if no timetable set
+- Other target = 20h fixed; total target = teachingTarget + 20
+- Teaching hours counted from CalendarEvents with status SCHEDULED or COMPLETED (not just COMPLETED) — SUBSTITUTED and CANCELLED excluded
+- If teacher gives lecture to another teacher (substitute), their event becomes SUBSTITUTED and is excluded from their progress; the substitute teacher's SUBSTITUTE_COVER event counts for their progress
+- Timetable extraction: Gemini 1.5 Flash vision API sends image/PDF → returns JSON slots directly; no OCR text step, no rule-based parser
 - 16-week projection: timetable upload/assign creates CalendarEvents from today forward
 - Export: xlsx binary with Content-Disposition; frontend triggers browser download via URL.createObjectURL
 - Tailwind v4: canonical syntax text-(--wfcts-primary), NOT text-[var(--wfcts-primary)]
+- GEMINI_API_KEY required in backend .env for timetable upload to work
 
 ## Recommended Next Work Items
 1. Add edit/delete endpoints for work entries, substitute entries, tasks, and industry sessions.
@@ -649,3 +654,11 @@ Runtime and setup:
 8. Add CalendarEvent seeding to the seed script for demo data.
 9. Teacher dashboard: show upcoming CalendarEvents (this week) in the schedule panel.
 10. TimetableUpload: support bulk teacher assignment (assign all unassigned to one teacher).
+
+## TimetableUpload Page — current behaviour (updated 2026-04-20)
+- Upload step: drop zone with Gemini AI branding; uploading spinner says "Gemini is reading your timetable"
+- Info cards: Gemini AI Extraction / Review & Correct / 16-Week Schedule (no OCR references)
+- Preview step: table shows hours per slot inline in time column e.g. "09:00–10:00 (1.0h)"
+- HoursSummary component below table: Total h/week · Teaching h · Other h · per-day breakdown chips
+- Summary note: "Progress bar teaching target will be set to Xh / week"
+- No OCR text button or raw text panel (removed); no confidence badge on rows

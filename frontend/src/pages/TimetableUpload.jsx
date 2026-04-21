@@ -9,9 +9,7 @@ import {
 } from '../utils/api'
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-
 const EVENT_TYPES = ['LECTURE', 'LAB', 'ADMIN', 'EXTRA_DUTY', 'MEETING']
-
 const EVENT_TYPE_COLORS = {
   LECTURE: 'bg-blue-100 text-blue-700',
   LAB: 'bg-teal-100 text-teal-700',
@@ -19,6 +17,7 @@ const EVENT_TYPE_COLORS = {
   EXTRA_DUTY: 'bg-amber-100 text-amber-700',
   MEETING: 'bg-purple-100 text-purple-700',
 }
+const TEACHING_TYPES = new Set(['LECTURE', 'LAB'])
 
 function SymIcon({ name, className = '' }) {
   return (
@@ -28,13 +27,103 @@ function SymIcon({ name, className = '' }) {
   )
 }
 
-function ConfidenceBadge({ confidence }) {
-  const pct = Math.round(confidence * 100)
-  const color = pct >= 80 ? 'text-emerald-600 bg-emerald-50' : pct >= 60 ? 'text-amber-600 bg-amber-50' : 'text-rose-600 bg-rose-50'
+function calcHours(startTime, endTime) {
+  if (!startTime || !endTime) return 0
+  const [sh, sm] = startTime.split(':').map(Number)
+  const [eh, em] = endTime.split(':').map(Number)
+  return Math.max(0, ((eh * 60 + em) - (sh * 60 + sm)) / 60)
+}
+
+function HoursSummary({ slots }) {
+  const teachingHours = slots
+    .filter((s) => TEACHING_TYPES.has(s.eventType))
+    .reduce((sum, s) => sum + calcHours(s.startTime, s.endTime), 0)
+  const otherHours = slots
+    .filter((s) => !TEACHING_TYPES.has(s.eventType))
+    .reduce((sum, s) => sum + calcHours(s.startTime, s.endTime), 0)
+  const totalHours = teachingHours + otherHours
+
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[0.6rem] font-bold ${color}`}>
-      {pct}%
-    </span>
+    <div className="wfcts-card p-5">
+      <p className="mb-4 text-[0.62rem] font-bold uppercase tracking-widest text-slate-400">
+        Weekly Hours Summary
+      </p>
+      <div className="flex flex-wrap items-center gap-6">
+        <div className="text-center">
+          <p className="text-2xl font-extrabold text-[var(--wfcts-primary)]">
+            {totalHours.toFixed(1)}<span className="text-sm font-semibold text-slate-400">h</span>
+          </p>
+          <p className="mt-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">Total / Week</p>
+        </div>
+        <div className="h-10 w-px bg-slate-100" />
+        <div className="text-center">
+          <p className="text-xl font-bold text-blue-600">
+            {teachingHours.toFixed(1)}<span className="text-xs font-semibold text-slate-400">h</span>
+          </p>
+          <p className="mt-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">Teaching</p>
+        </div>
+        <div className="text-center">
+          <p className="text-xl font-bold text-slate-600">
+            {otherHours.toFixed(1)}<span className="text-xs font-semibold text-slate-400">h</span>
+          </p>
+          <p className="mt-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">Other</p>
+        </div>
+        <div className="ml-auto hidden sm:block">
+          <p className="text-xs text-slate-400">
+            Progress bar teaching target will be set to{' '}
+            <strong className="text-slate-700">{teachingHours.toFixed(1)}h / week</strong>
+          </p>
+        </div>
+      </div>
+
+      {/* Per-day breakdown */}
+      {slots.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[1, 2, 3, 4, 5, 6, 0].map((day) => {
+            const daySlots = slots.filter((s) => s.day === day)
+            if (!daySlots.length) return null
+            const hrs = daySlots.reduce((sum, s) => sum + calcHours(s.startTime, s.endTime), 0)
+            return (
+              <div key={day} className="flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 text-[0.65rem] font-semibold text-slate-600">
+                <span className="text-slate-400">{DAY_NAMES[day].slice(0, 3)}</span>
+                {hrs.toFixed(1)}h
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const DETECTION_LEGEND = [
+  { type: 'LECTURE', color: EVENT_TYPE_COLORS.LECTURE, hint: 'Regular class lecture' },
+  { type: 'LAB', color: EVENT_TYPE_COLORS.LAB, hint: 'Practical / lab session' },
+  { type: 'ADMIN', color: EVENT_TYPE_COLORS.ADMIN, hint: 'Administrative duty' },
+  { type: 'EXTRA_DUTY', color: EVENT_TYPE_COLORS.EXTRA_DUTY, hint: 'Exam invigilation, duty etc.' },
+  { type: 'MEETING', color: EVENT_TYPE_COLORS.MEETING, hint: 'Department or staff meeting' },
+]
+
+function DetectionLegend() {
+  return (
+    <div className="wfcts-card p-5">
+      <p className="mb-3 text-[0.62rem] font-bold uppercase tracking-widest text-slate-400">
+        Detection Rules — Event Types
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {DETECTION_LEGEND.map(({ type, color, hint }) => (
+          <div key={type} className="flex items-center gap-2">
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.62rem] font-bold ${color}`}>
+              {type}
+            </span>
+            <span className="text-[0.65rem] text-slate-400">{hint}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-[0.65rem] text-slate-400">
+        The AI infers event type from keywords in the timetable (e.g. "Lab", "Meeting", "Duty"). You can override any type in the preview.
+      </p>
+    </div>
   )
 }
 
@@ -135,12 +224,14 @@ function SlotRow({ slot, index, teacherDirectory, onUpdate, onRemove }) {
   }
 
   const teacher = teacherDirectory.find((t) => t.id === slot.teacherId)
+  const slotHours = calcHours(slot.startTime, slot.endTime)
 
   return (
     <tr className="group border-b border-slate-100 hover:bg-slate-50/60">
       <td className="px-3 py-3 text-xs font-semibold text-slate-700">{DAY_NAMES[slot.day]}</td>
       <td className="px-3 py-3 text-xs text-slate-600">
         {slot.startTime} – {slot.endTime}
+        <span className="ml-1.5 text-slate-400">({slotHours.toFixed(1)}h)</span>
       </td>
       <td className="px-3 py-3 text-xs font-semibold text-[var(--wfcts-primary)]">
         {slot.subject || <span className="italic text-slate-400">—</span>}
@@ -160,7 +251,6 @@ function SlotRow({ slot, index, teacherDirectory, onUpdate, onRemove }) {
       </td>
       <td className="px-3 py-3 text-center">
         <div className="flex items-center justify-center gap-2">
-          <ConfidenceBadge confidence={slot.confidence || 1} />
           <button
             onClick={() => setEditing(true)}
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
@@ -186,11 +276,9 @@ export default function TimetableUpload() {
 
   const isManager = user?.role === 'ADMIN' || user?.role === 'HOD'
 
-  const [step, setStep] = useState('upload') // 'upload' | 'preview' | 'saving' | 'done'
+  const [step, setStep] = useState('upload') // 'upload' | 'preview' | 'done'
   const [uploadId, setUploadId] = useState(null)
   const [parsedSlots, setParsedSlots] = useState([])
-  const [rawOCRText, setRawOCRText] = useState('')
-  const [showOCR, setShowOCR] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -220,7 +308,6 @@ export default function TimetableUpload() {
       const upload = result.upload
       setUploadId(upload.id)
       setParsedSlots(upload.parsedSlots || [])
-      setRawOCRText(upload.rawOCRText || '')
       setStep('preview')
     } catch (e) {
       setError(e.message || 'Upload failed')
@@ -232,14 +319,12 @@ export default function TimetableUpload() {
   const handleDrop = (e) => {
     e.preventDefault()
     setDragOver(false)
-    const file = e.dataTransfer.files[0]
-    handleFile(file)
+    handleFile(e.dataTransfer.files[0])
   }
 
   const handleUpdateSlot = (index, updated) => {
     const next = parsedSlots.map((s, i) => (i === index ? { ...s, ...updated } : s))
     setParsedSlots(next)
-    // Sync to backend
     patchTimetableUploadRequest(token, uploadId, { parsedSlots: next }).catch(() => {})
   }
 
@@ -251,30 +336,22 @@ export default function TimetableUpload() {
 
   const handleAddSlot = () => {
     const blank = {
-      day: 1,
-      startTime: '09:00',
-      endTime: '10:00',
-      subject: '',
-      className: '',
-      location: '',
-      eventType: 'LECTURE',
-      teacherId: '',
-      confidence: 1,
+      day: 1, startTime: '09:00', endTime: '10:00',
+      subject: '', className: '', location: '',
+      eventType: 'LECTURE', teacherId: '', confidence: 1,
       _rowId: `manual_${Date.now()}`,
     }
-    const next = [...parsedSlots, blank]
-    setParsedSlots(next)
+    setParsedSlots((prev) => [...prev, blank])
   }
 
   const handleSave = async () => {
     const unassigned = parsedSlots.filter((s) => !s.teacherId).length
     if (unassigned > 0) {
       const proceed = window.confirm(
-        `${unassigned} slot(s) have no teacher assigned. Their CalendarEvents will be created without an assignee and can be assigned later. Continue?`
+        `${unassigned} slot(s) have no teacher assigned. Continue?`
       )
       if (!proceed) return
     }
-
     setSaving(true)
     setError('')
     try {
@@ -290,6 +367,7 @@ export default function TimetableUpload() {
 
   const unassignedCount = parsedSlots.filter((s) => !s.teacherId).length
 
+  // ── Done ──────────────────────────────────────────────────────────────────
   if (step === 'done') {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-6 animate-float-in">
@@ -311,7 +389,7 @@ export default function TimetableUpload() {
             View Calendar
           </button>
           <button
-            onClick={() => { setStep('upload'); setUploadId(null); setParsedSlots([]); setRawOCRText('') }}
+            onClick={() => { setStep('upload'); setUploadId(null); setParsedSlots([]) }}
             className="rounded-full border border-slate-200 px-6 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
           >
             Upload Another
@@ -321,10 +399,10 @@ export default function TimetableUpload() {
     )
   }
 
+  // ── Preview ───────────────────────────────────────────────────────────────
   if (step === 'preview') {
     return (
       <div className="space-y-6 animate-float-in">
-        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-label text-[0.62rem] font-bold uppercase tracking-[0.28em] text-[var(--wfcts-muted)]">
@@ -334,54 +412,36 @@ export default function TimetableUpload() {
               Review & Assign
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              {parsedSlots.length} slot{parsedSlots.length !== 1 ? 's' : ''} detected. Edit, assign teachers, then save.
+              {parsedSlots.length} slot{parsedSlots.length !== 1 ? 's' : ''} extracted by AI. Edit, assign teachers, then save.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowOCR(!showOCR)}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-            >
-              <SymIcon name="text_snippet" className="text-sm" />
-              {showOCR ? 'Hide' : 'View'} OCR Text
-            </button>
-            <button
-              onClick={handleAddSlot}
-              className="flex items-center gap-2 rounded-xl border border-[var(--wfcts-primary)]/30 bg-[var(--wfcts-primary)]/6 px-4 py-2.5 text-xs font-semibold text-[var(--wfcts-primary)] hover:bg-[var(--wfcts-primary)]/10"
-            >
-              <SymIcon name="add" className="text-sm" />
-              Add Slot
-            </button>
-          </div>
+          <button
+            onClick={handleAddSlot}
+            className="flex items-center gap-2 rounded-xl border border-[var(--wfcts-primary)]/30 bg-[var(--wfcts-primary)]/6 px-4 py-2.5 text-xs font-semibold text-[var(--wfcts-primary)] hover:bg-[var(--wfcts-primary)]/10"
+          >
+            <SymIcon name="add" className="text-sm" />
+            Add Slot
+          </button>
         </div>
 
         {error && (
           <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
         )}
 
-        {/* OCR text preview */}
-        {showOCR && rawOCRText && (
-          <div className="wfcts-card p-5">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Raw OCR Output</p>
-            <pre className="max-h-48 overflow-auto rounded-xl bg-slate-900 p-4 text-[0.7rem] text-slate-300 whitespace-pre-wrap">
-              {rawOCRText}
-            </pre>
-          </div>
-        )}
-
-        {/* Unassigned warning */}
         {unassignedCount > 0 && (
           <div className="flex items-center gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
             <SymIcon name="warning" className="text-base" />
-            <span>{unassignedCount} slot{unassignedCount !== 1 ? 's are' : ' is'} unassigned. Assign teachers before saving or proceed without assignment.</span>
+            <span>{unassignedCount} slot{unassignedCount !== 1 ? 's are' : ' is'} unassigned.</span>
           </div>
         )}
+
+        <DetectionLegend />
 
         {/* Slots table */}
         <div className="wfcts-card overflow-hidden">
           {parsedSlots.length === 0 ? (
             <div className="p-12 text-center">
-              <p className="font-semibold text-slate-700">No slots parsed</p>
+              <p className="font-semibold text-slate-700">No slots extracted</p>
               <p className="mt-1 text-sm text-slate-400">Click "Add Slot" to add manually.</p>
             </div>
           ) : (
@@ -415,7 +475,10 @@ export default function TimetableUpload() {
           )}
         </div>
 
-        {/* Footer actions */}
+        {/* Hours summary — shown below the table */}
+        {parsedSlots.length > 0 && <HoursSummary slots={parsedSlots} />}
+
+        {/* Footer */}
         <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-white px-6 py-4 shadow-sm">
           <button
             onClick={() => { setStep('upload'); setUploadId(null); setParsedSlots([]) }}
@@ -436,7 +499,7 @@ export default function TimetableUpload() {
               {saving ? (
                 <>
                   <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
-                  Generating...
+                  Generating…
                 </>
               ) : (
                 <>
@@ -451,7 +514,7 @@ export default function TimetableUpload() {
     )
   }
 
-  // Upload step
+  // ── Upload step ───────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-float-in">
       <div>
@@ -462,8 +525,8 @@ export default function TimetableUpload() {
           Upload Timetable
         </h1>
         <p className="mt-2 max-w-xl text-sm text-slate-500">
-          Upload a photo or PDF of the timetable. The system will OCR and extract class slots automatically.
-          You can review and edit before generating the 16-week schedule.
+          Upload a photo or PDF of the timetable. Llama 4 Scout via Groq will extract all slots, times, and subjects automatically.
+          Review and edit before generating the 16-week schedule.
         </p>
       </div>
 
@@ -471,7 +534,6 @@ export default function TimetableUpload() {
         <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
 
-      {/* Manager: choose target teacher */}
       {isManager && (
         <div className="wfcts-card p-5">
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Upload Timetable For</p>
@@ -487,7 +549,7 @@ export default function TimetableUpload() {
           </select>
           {targetTeacherId && (
             <p className="mt-2 text-xs text-slate-400">
-              All detected slots will be auto-assigned to <strong>{teacherDirectory.find((t) => t.id === targetTeacherId)?.name}</strong>. You can still reassign individually in the preview.
+              All detected slots will be auto-assigned to <strong>{teacherDirectory.find((t) => t.id === targetTeacherId)?.name}</strong>.
             </p>
           )}
         </div>
@@ -518,8 +580,8 @@ export default function TimetableUpload() {
             <span className="material-symbols-outlined animate-spin text-[3rem] text-[var(--wfcts-primary)]">
               progress_activity
             </span>
-            <p className="font-semibold text-slate-700">Extracting text from file…</p>
-            <p className="text-sm text-slate-400">This may take a few seconds for OCR</p>
+            <p className="font-semibold text-slate-700">Llama 4 Scout is reading your timetable…</p>
+            <p className="text-sm text-slate-400">AI extraction takes 5–15 seconds</p>
           </div>
         ) : (
           <>
@@ -528,7 +590,7 @@ export default function TimetableUpload() {
             </div>
             <div className="text-center">
               <p className="font-semibold text-slate-700">Drop timetable here or click to browse</p>
-              <p className="mt-1 text-sm text-slate-400">Supports JPG, PNG, WebP, PDF — max 10 MB</p>
+              <p className="mt-1 text-sm text-slate-400">Supports JPG, PNG, WebP, PDF</p>
             </div>
             <div className="flex gap-3">
               {['Photo', 'Scanned PDF', 'Screenshot'].map((label) => (
@@ -544,9 +606,9 @@ export default function TimetableUpload() {
       {/* Info cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
-          { icon: 'document_scanner', title: 'OCR Extraction', desc: 'Tesseract reads text from images and PDFs automatically.' },
-          { icon: 'auto_fix_high', title: 'Rule-based Parse', desc: 'Day, time, subject and class are extracted from raw text patterns.' },
-          { icon: 'calendar_add_on', title: '16-Week Schedule', desc: 'Each slot generates CalendarEvents for the next 4 months.' },
+          { icon: 'smart_toy', title: 'Groq / Llama 4 Scout', desc: 'Llama 4 Scout via Groq reads your timetable image or PDF and returns structured slots in under 5 seconds.' },
+          { icon: 'edit_note', title: 'Review & Correct', desc: 'Check extracted slots, fix any errors, assign teachers, and add missing entries manually.' },
+          { icon: 'calendar_add_on', title: '16-Week Schedule', desc: 'Each slot generates calendar events for the next 4 months and sets your weekly teaching target.' },
         ].map((item) => (
           <div key={item.title} className="wfcts-card p-5">
             <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--wfcts-primary)]/8 text-[var(--wfcts-primary)]">
@@ -557,6 +619,8 @@ export default function TimetableUpload() {
           </div>
         ))}
       </div>
+
+      <DetectionLegend />
     </div>
   )
 }
