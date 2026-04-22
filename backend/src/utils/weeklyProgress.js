@@ -1,6 +1,7 @@
 const CalendarEvent = require('../models/CalendarEvent').CalendarEvent
 const WorkEntry = require('../models/WorkEntry')
 const TeacherTimetable = require('../models/TeacherTimetable')
+const User = require('../models/User')
 
 // ─── Week helpers ─────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ function calcHours(startTime, endTime) {
 async function computeWeekProgress(userId, weekId) {
   const { weekStart, weekEnd } = getWeekBounds(weekId)
 
-  const [events, manualLogs, timetableSlots] = await Promise.all([
+  const [events, manualLogs, timetableSlots, teacher] = await Promise.all([
     CalendarEvent.find({
       assignedTo: userId,
       date: { $gte: weekStart, $lte: weekEnd },
@@ -52,6 +53,7 @@ async function computeWeekProgress(userId, weekId) {
       source: 'manual',
     }),
     TeacherTimetable.find({ teacherId: userId }).lean(),
+    User.findById(userId).lean(),
   ])
 
   const breakdown = {
@@ -67,7 +69,10 @@ async function computeWeekProgress(userId, weekId) {
   // Teaching target = sum of all teacher's timetable slot hours per week
   const teachingTarget = Number(
     timetableSlots.reduce((sum, slot) => sum + calcHours(slot.startTime, slot.endTime), 0).toFixed(2)
-  ) || 20
+  ) || 0
+
+  // Admin target = set per-teacher by admin (null = not configured)
+  const adminTarget = teacher?.adminHoursTarget ?? null
 
   for (const evt of events) {
     const hrs = calcHours(evt.startTime, evt.endTime)
@@ -95,7 +100,9 @@ async function computeWeekProgress(userId, weekId) {
     breakdown[key] = Number(breakdown[key].toFixed(2))
   }
 
-  const totalTarget = Number((teachingTarget + 20).toFixed(2))
+  const totalTarget = adminTarget != null
+    ? Number((teachingTarget + adminTarget).toFixed(2))
+    : teachingTarget
 
   return {
     weekId,
@@ -105,11 +112,11 @@ async function computeWeekProgress(userId, weekId) {
     otherHours,
     totalHours,
     breakdown,
-    targets: { teaching: teachingTarget, other: 20, total: totalTarget },
+    targets: { teaching: teachingTarget, admin: adminTarget, total: totalTarget },
     percentages: {
-      teaching: Math.min(100, Math.round((teachingHours / teachingTarget) * 100)),
-      other: Math.min(100, Math.round((otherHours / 20) * 100)),
-      total: Math.min(100, Math.round((totalHours / totalTarget) * 100)),
+      teaching: teachingTarget > 0 ? Math.min(100, Math.round((teachingHours / teachingTarget) * 100)) : 0,
+      other: adminTarget > 0 ? Math.min(100, Math.round((otherHours / adminTarget) * 100)) : 0,
+      total: totalTarget > 0 ? Math.min(100, Math.round((totalHours / totalTarget) * 100)) : 0,
     },
   }
 }

@@ -30,6 +30,10 @@ const userSchema = new mongoose.Schema(
       enum: allowedRoles,
       required: true,
     },
+    adminHoursTarget: {
+      type: Number,
+      default: null,
+    },
     profileImage: {
       data: Buffer,
       contentType: String,

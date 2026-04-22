@@ -22,6 +22,7 @@ router.get('/teachers', misc.getTeachers)
 router.get('/bootstrap', misc.getBootstrap)
 router.get('/managers', misc.getManagers)
 router.get('/available-teachers', misc.getAvailableTeachers)
+router.patch('/teachers/:teacherId/targets', requireRoles('ADMIN', 'HOD'), misc.patchTeacherTargets)
 
 // ─── Timetable Slots ──────────────────────────────────────────────────────────
 router.get('/timetable-slots', timetable.getTimetableSlots)

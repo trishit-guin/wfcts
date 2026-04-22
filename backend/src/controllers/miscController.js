@@ -113,4 +113,37 @@ async function getAvailableTeachers(req, res, next) {
   }
 }
 
-module.exports = { getTeachers, getBootstrap, getManagers, getAvailableTeachers }
+async function patchTeacherTargets(req, res, next) {
+  try {
+    const { teacherId } = req.params
+    const { adminHoursTarget } = req.body
+
+    const update = {}
+    if (adminHoursTarget !== undefined) {
+      const val = adminHoursTarget === null ? null : Number(adminHoursTarget)
+      if (adminHoursTarget !== null && (Number.isNaN(val) || val < 0)) {
+        const err = new Error('adminHoursTarget must be a non-negative number or null')
+        err.statusCode = 400
+        throw err
+      }
+      update.adminHoursTarget = val
+    }
+
+    const teacher = await User.findOneAndUpdate(
+      { _id: teacherId, role: 'TEACHER' },
+      { $set: update },
+      { new: true },
+    )
+    if (!teacher) {
+      const err = new Error('Teacher not found')
+      err.statusCode = 404
+      throw err
+    }
+
+    res.json({ teacher: teacher.toJSON() })
+  } catch (error) {
+    next(error)
+  }
+}
+
+module.exports = { getTeachers, getBootstrap, getManagers, getAvailableTeachers, patchTeacherTargets }
