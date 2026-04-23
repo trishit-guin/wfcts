@@ -183,7 +183,9 @@ function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
         <div className="flex items-center gap-3 shrink-0">
           <span className={`text-sm font-extrabold tabular-nums ${statusColor}`}>
             {weeklyProgress?.totalHours ?? 0}h
-            <span className="ml-1 text-[0.65rem] font-semibold text-slate-400">/ 40h</span>
+            {weeklyProgress?.targets?.total > 0 && (
+              <span className="ml-1 text-[0.65rem] font-semibold text-slate-400">/ {weeklyProgress.targets.total}h</span>
+            )}
           </span>
           <span className={`hidden rounded-full px-2.5 py-0.5 text-[0.6rem] font-bold sm:inline ${
             totalPct >= 75 ? 'bg-emerald-100 text-emerald-700'
@@ -213,7 +215,9 @@ function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
                   <span className="inline-block h-2 w-2 rounded-full bg-(--wfcts-primary)" />
                   Teaching
                 </span>
-                <span className="text-(--wfcts-primary)">{weeklyProgress?.teachingHours ?? 0}h / 20h</span>
+                <span className="text-(--wfcts-primary)">
+                  {weeklyProgress?.teachingHours ?? 0}h{weeklyProgress?.targets?.teaching > 0 ? ` / ${weeklyProgress.targets.teaching}h` : ''}
+                </span>
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
                 <div
@@ -243,9 +247,11 @@ function WeeklyProgressBanner({ weeklyProgress, onNavigate }) {
               <div className="flex items-center justify-between text-xs font-semibold mb-2">
                 <span className="flex items-center gap-1.5 text-slate-600">
                   <span className="inline-block h-2 w-2 rounded-full bg-(--wfcts-secondary)" />
-                  Other Duties
+                  Admin Work
                 </span>
-                <span className="text-(--wfcts-secondary)">{weeklyProgress?.otherHours ?? 0}h / 20h</span>
+                <span className="text-(--wfcts-secondary)">
+                  {weeklyProgress?.otherHours ?? 0}h{weeklyProgress?.targets?.admin != null ? ` / ${weeklyProgress.targets.admin}h` : ''}
+                </span>
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
                 <div

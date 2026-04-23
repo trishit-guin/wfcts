@@ -9,6 +9,12 @@ import {
   createWorkEntryRequest,
   deleteTimetableSlotRequest,
   getAvailableTeachersRequest,
+  getSubstituteSuggestionsRequest,
+  getTeachingAllocationsRequest,
+  createTeachingAllocationRequest,
+  updateTeachingAllocationRequest,
+  deleteTeachingAllocationRequest,
+  getHoursCompletionRequest,
   getBootstrapRequest,
   getSubstituteSettlementsRequest,
   getTimetableSlotsRequest,
@@ -31,6 +37,7 @@ import {
   getAcademicCalendarRequest,
   createAcademicEventRequest,
   deleteAcademicEventRequest,
+  patchTeacherTargetsRequest,
 } from '../utils/api'
 import { useAuth } from './AuthContext'
 
@@ -44,6 +51,9 @@ const initialState = {
   industrySessions: [],
   timetableSlots: [],
   availableTeachers: [],
+  substituteSuggestions: [],
+  teachingAllocations: [],
+  hoursCompletion: [],
   calendarEvents: [],
   weeklyProgress: null,
   weeklyProgressHistory: [],
@@ -66,6 +76,9 @@ export function WFCTSProvider({ children }) {
   const [industrySessions, setIndustrySessions] = useState(initialState.industrySessions)
   const [timetableSlots, setTimetableSlots] = useState(initialState.timetableSlots)
   const [availableTeachers, setAvailableTeachers] = useState(initialState.availableTeachers)
+  const [substituteSuggestions, setSubstituteSuggestions] = useState(initialState.substituteSuggestions)
+  const [teachingAllocations, setTeachingAllocations] = useState(initialState.teachingAllocations)
+  const [hoursCompletion, setHoursCompletion] = useState(initialState.hoursCompletion)
   const [calendarEvents, setCalendarEvents] = useState(initialState.calendarEvents)
   const [weeklyProgress, setWeeklyProgress] = useState(initialState.weeklyProgress)
   const [weeklyProgressHistory, setWeeklyProgressHistory] = useState(initialState.weeklyProgressHistory)
@@ -82,6 +95,9 @@ export function WFCTSProvider({ children }) {
     setIndustrySessions(initialState.industrySessions)
     setTimetableSlots(initialState.timetableSlots)
     setAvailableTeachers(initialState.availableTeachers)
+    setSubstituteSuggestions(initialState.substituteSuggestions)
+    setTeachingAllocations(initialState.teachingAllocations)
+    setHoursCompletion(initialState.hoursCompletion)
     setCalendarEvents(initialState.calendarEvents)
     setWeeklyProgress(initialState.weeklyProgress)
     setWeeklyProgressHistory(initialState.weeklyProgressHistory)
@@ -234,6 +250,41 @@ export function WFCTSProvider({ children }) {
     return response.availableTeachers || []
   }, [token])
 
+  const fetchSubstituteSuggestions = useCallback(async (query) => {
+    const response = await getSubstituteSuggestionsRequest(token, query)
+    setSubstituteSuggestions(response.suggestions || [])
+    return response.suggestions || []
+  }, [token])
+
+  const fetchTeachingAllocations = useCallback(async (query = {}) => {
+    const response = await getTeachingAllocationsRequest(token, query)
+    setTeachingAllocations(response.allocations || [])
+    return response.allocations || []
+  }, [token])
+
+  const fetchHoursCompletion = useCallback(async (query = {}) => {
+    const response = await getHoursCompletionRequest(token, query)
+    setHoursCompletion(response.completion || [])
+    return response.completion || []
+  }, [token])
+
+  const addTeachingAllocation = useCallback(async (payload) => {
+    const response = await createTeachingAllocationRequest(token, payload)
+    setTeachingAllocations((prev) => [...prev, response.allocation])
+    return response.allocation
+  }, [token])
+
+  const editTeachingAllocation = useCallback(async (id, payload) => {
+    const response = await updateTeachingAllocationRequest(token, id, payload)
+    setTeachingAllocations((prev) => prev.map((a) => (a.id === id ? response.allocation : a)))
+    return response.allocation
+  }, [token])
+
+  const removeTeachingAllocation = useCallback(async (id) => {
+    await deleteTeachingAllocationRequest(token, id)
+    setTeachingAllocations((prev) => prev.filter((a) => a.id !== id))
+  }, [token])
+
   // ─── Calendar Events ────────────────────────────────────────────────────────
 
   const sortEvents = (events) =>
@@ -321,6 +372,16 @@ export function WFCTSProvider({ children }) {
     return response.snapshot
   }, [token])
 
+  // ─── Teacher Targets ────────────────────────────────────────────────────────
+
+  const updateTeacherAdminTarget = useCallback(async (teacherId, adminHoursTarget) => {
+    const response = await patchTeacherTargetsRequest(token, teacherId, { adminHoursTarget })
+    setTeacherDirectory((prev) =>
+      prev.map((t) => (t.id === teacherId ? { ...t, adminHoursTarget: response.teacher.adminHoursTarget } : t))
+    )
+    return response.teacher
+  }, [token])
+
   // ─── Academic Calendar ──────────────────────────────────────────────────────
 
   const fetchAcademicEvents = useCallback(async () => {
@@ -351,6 +412,7 @@ export function WFCTSProvider({ children }) {
         industrySessions,
         timetableSlots,
         availableTeachers,
+        substituteSuggestions,
         settlementPlan,
         isLoading,
         error,
@@ -368,6 +430,14 @@ export function WFCTSProvider({ children }) {
         deleteTimetableSlot,
         refreshTimetableSlots,
         fetchAvailableTeachers,
+        fetchSubstituteSuggestions,
+        teachingAllocations,
+        hoursCompletion,
+        fetchTeachingAllocations,
+        fetchHoursCompletion,
+        addTeachingAllocation,
+        editTeachingAllocation,
+        removeTeachingAllocation,
         calendarEvents,
         fetchCalendarEvents,
         addCalendarEvent,
@@ -382,6 +452,7 @@ export function WFCTSProvider({ children }) {
         fetchWeeklyProgress,
         fetchWeeklyProgressHistory,
         snapshotWeeklyProgress,
+        updateTeacherAdminTarget,
         academicEvents,
         fetchAcademicEvents,
         addAcademicEvent,

@@ -46,7 +46,7 @@ function Toast({ message }) {
 
 export default function WorkEntry() {
   const { user } = useAuth()
-  const { addWorkEntry, updateWorkEntry, workEntries, isLoading } = useWFCTS()
+  const { addWorkEntry, updateWorkEntry, workEntries, isLoading, weeklyProgress: wpProgress } = useWFCTS()
   const [form, setForm] = useState(defaultForm)
   const [editingEntryId, setEditingEntryId] = useState('')
   const [toast, setToast] = useState(false)
@@ -75,8 +75,8 @@ export default function WorkEntry() {
   }, [teacherEntries])
 
   const totalLoggedHours = teacherEntries.reduce((sum, entry) => sum + Number(entry.hours || 0), 0)
-  const weeklyTarget = 20
-  const weeklyProgress = Math.min(Math.round((thisWeekHours / weeklyTarget) * 100), 100)
+  const weeklyTarget = wpProgress?.targets?.teaching || null
+  const weeklyProgress = weeklyTarget ? Math.min(Math.round((thisWeekHours / weeklyTarget) * 100), 100) : null
   const todayLabel = new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
     month: 'long',
@@ -336,17 +336,22 @@ export default function WorkEntry() {
             </div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200">Weekly Hours</p>
             <h3 className="font-headline mt-2 text-5xl font-extrabold tracking-[-0.05em]">{thisWeekHours}</h3>
-            <div className="mt-5 flex items-center gap-3">
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/20">
-                <div
-                  className="h-full rounded-full bg-[var(--wfcts-secondary-soft)]"
-                  style={{ width: `${weeklyProgress}%` }}
-                />
+            {weeklyTarget != null && (
+              <div className="mt-5 flex items-center gap-3">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/20">
+                  <div
+                    className="h-full rounded-full bg-[var(--wfcts-secondary-soft)]"
+                    style={{ width: `${weeklyProgress}%` }}
+                  />
+                </div>
+                <span className="text-xs font-bold">{weeklyProgress}%</span>
               </div>
-              <span className="text-xs font-bold">{weeklyProgress}%</span>
-            </div>
+            )}
             <p className="mt-4 text-sm leading-relaxed text-blue-100">
-              You have logged {thisWeekHours} hours in the last 7 days. {Math.max(weeklyTarget - thisWeekHours, 0)} hours remain to reach the reference target of {weeklyTarget}.
+              You have logged {thisWeekHours} hours in the last 7 days.
+              {weeklyTarget != null
+                ? ` ${Math.max(weeklyTarget - thisWeekHours, 0)}h remain to reach your teaching target of ${weeklyTarget}h.`
+                : ' Upload your timetable to set a teaching target.'}
             </p>
           </div>
 

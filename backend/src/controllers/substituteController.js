@@ -6,7 +6,7 @@ const { isTeacher, serializeCollection, normalizeDirection, oppositeDirection, t
 
 async function createSubstituteEntry(req, res, next) {
   try {
-    const { coveredFor, date, status, direction, counterpartTeacherId } = req.body || {}
+    const { coveredFor, date, status, direction, counterpartTeacherId, startTime, endTime, className, subject } = req.body || {}
 
     if (!date) {
       const error = new Error('Date is required')
@@ -32,6 +32,11 @@ async function createSubstituteEntry(req, res, next) {
         error.statusCode = 400
         throw error
       }
+      if (req.user.department && counterpart.department && req.user.department !== counterpart.department) {
+        const error = new Error(`Substitutions must be within the same department (${req.user.department})`)
+        error.statusCode = 400
+        throw error
+      }
     }
 
     if (!counterpart && !normalizedCoveredFor) {
@@ -41,6 +46,12 @@ async function createSubstituteEntry(req, res, next) {
     }
 
     const pairingKey = counterpart ? String(new mongoose.Types.ObjectId()) : ''
+    const slotFields = {
+      startTime: startTime ? String(startTime).trim() : '',
+      endTime: endTime ? String(endTime).trim() : '',
+      className: className ? String(className).trim() : '',
+      subject: subject ? String(subject).trim() : '',
+    }
     const entryPayload = {
       teacherId: req.user._id,
       coveredFor: counterpart ? counterpart.name : normalizedCoveredFor,
@@ -49,6 +60,7 @@ async function createSubstituteEntry(req, res, next) {
       status: normalizedStatus,
       direction: normalizedDirection,
       pairingKey,
+      ...slotFields,
     }
 
     const createdEntries = counterpart
@@ -62,6 +74,7 @@ async function createSubstituteEntry(req, res, next) {
           status: normalizedStatus,
           direction: oppositeDirection(normalizedDirection),
           pairingKey,
+          ...slotFields,
         },
       ])
       : [await SubstituteEntry.create(entryPayload)]

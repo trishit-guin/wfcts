@@ -10,6 +10,7 @@ const task = require('../controllers/taskController')
 const industrySession = require('../controllers/industrySessionController')
 const calendarEvent = require('../controllers/calendarEventController')
 const weeklyProgress = require('../controllers/weeklyProgressController')
+const teachingAllocation = require('../controllers/teachingAllocationController')
 const timetableUploadCtrl = require('../controllers/timetableUploadController')
 const exportCtrl = require('../controllers/exportController')
 const academicCalendar = require('../controllers/academicCalendarController')
@@ -22,6 +23,7 @@ router.get('/teachers', misc.getTeachers)
 router.get('/bootstrap', misc.getBootstrap)
 router.get('/managers', misc.getManagers)
 router.get('/available-teachers', misc.getAvailableTeachers)
+router.get('/substitute-suggestions', misc.getSubstituteSuggestions)
 router.patch('/teachers/:teacherId/targets', requireRoles('ADMIN', 'HOD'), misc.patchTeacherTargets)
 
 // ─── Timetable Slots ──────────────────────────────────────────────────────────
@@ -73,6 +75,13 @@ router.post('/timetable-upload/:uploadId/save', requireRoles('TEACHER', 'ADMIN',
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 router.get('/export/monthly', exportCtrl.exportMonthly)
+
+// ─── Teaching Allocations ─────────────────────────────────────────────────────
+router.get('/teaching-allocations', teachingAllocation.getAllocations)
+router.post('/teaching-allocations', requireRoles('ADMIN', 'HOD'), teachingAllocation.createAllocation)
+router.patch('/teaching-allocations/:id', requireRoles('ADMIN', 'HOD'), teachingAllocation.updateAllocation)
+router.delete('/teaching-allocations/:id', requireRoles('ADMIN', 'HOD'), teachingAllocation.deleteAllocation)
+router.get('/hours-completion', teachingAllocation.getHoursCompletion)
 
 // ─── Academic Calendar ────────────────────────────────────────────────────────
 router.get('/academic-calendar', academicCalendar.getAcademicCalendar)

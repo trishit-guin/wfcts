@@ -169,6 +169,17 @@ export function getAvailableTeachersRequest(token, query) {
   return apiRequest(`/data/available-teachers?${params.toString()}`, { token })
 }
 
+export function getSubstituteSuggestionsRequest(token, query) {
+  const params = new URLSearchParams()
+  Object.entries(query || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      params.set(key, String(value))
+    }
+  })
+
+  return apiRequest(`/data/substitute-suggestions?${params.toString()}`, { token })
+}
+
 export function getSubstituteSettlementsRequest(token) {
   return apiRequest('/data/substitute-settlements', { token })
 }
@@ -223,6 +234,10 @@ export function updateIndustrySessionRequest(token, sessionId, payload) {
 
 export function getManagersRequest(token) {
   return apiRequest('/data/managers', { token })
+}
+
+export function patchTeacherTargetsRequest(token, teacherId, payload) {
+  return apiRequest(`/data/teachers/${teacherId}/targets`, { method: 'PATCH', token, body: payload })
 }
 
 // ─── Calendar Events ──────────────────────────────────────────────────────────
@@ -354,6 +369,38 @@ export async function exportMonthlyRequest(token, params = {}) {
   a.click()
   a.remove()
   URL.revokeObjectURL(url)
+}
+
+// ─── Teaching Allocations ─────────────────────────────────────────────────────
+
+export function getTeachingAllocationsRequest(token, query = {}) {
+  const params = new URLSearchParams()
+  Object.entries(query).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') params.set(k, String(v))
+  })
+  const suffix = params.toString() ? `?${params.toString()}` : ''
+  return apiRequest(`/data/teaching-allocations${suffix}`, { token })
+}
+
+export function createTeachingAllocationRequest(token, payload) {
+  return apiRequest('/data/teaching-allocations', { method: 'POST', token, body: payload })
+}
+
+export function updateTeachingAllocationRequest(token, id, payload) {
+  return apiRequest(`/data/teaching-allocations/${id}`, { method: 'PATCH', token, body: payload })
+}
+
+export function deleteTeachingAllocationRequest(token, id) {
+  return apiRequest(`/data/teaching-allocations/${id}`, { method: 'DELETE', token })
+}
+
+export function getHoursCompletionRequest(token, query = {}) {
+  const params = new URLSearchParams()
+  Object.entries(query).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') params.set(k, String(v))
+  })
+  const suffix = params.toString() ? `?${params.toString()}` : ''
+  return apiRequest(`/data/hours-completion${suffix}`, { token })
 }
 
 // ─── Academic Calendar ────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
@@ -44,7 +45,63 @@ function QuickActions({ navigate }) {
   )
 }
 
-function TeacherDirectoryTable({ teacherDirectory, navigate }) {
+function AdminHoursInput({ teacher, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(teacher.adminHoursTarget ?? '')
+  const [saving, setSaving] = useState(false)
+
+  const current = teacher.adminHoursTarget
+
+  const handleSave = async () => {
+    setSaving(true)
+    const parsed = val === '' ? null : Number(val)
+    await onSave(teacher.id, parsed)
+    setSaving(false)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <input
+          type="number"
+          min="0"
+          step="0.5"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          placeholder="hrs"
+          className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-xs focus:border-(--wfcts-primary) focus:outline-none"
+        />
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-bold text-white hover:bg-emerald-600 disabled:opacity-50"
+        >
+          {saving ? '…' : 'Set'}
+        </button>
+        <button
+          onClick={() => { setVal(current ?? ''); setEditing(false) }}
+          className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:bg-slate-50"
+        >
+          ✕
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      title="Set admin hours target"
+      className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[0.65rem] font-semibold text-slate-600 hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+    >
+      <span className="material-symbols-outlined text-[0.85rem]">timer</span>
+      {current != null ? `${current}h admin` : 'Set admin hrs'}
+    </button>
+  )
+}
+
+function TeacherDirectoryTable({ teacherDirectory, navigate, onSaveAdminTarget }) {
   if (!teacherDirectory.length) return null
   return (
     <div className="wfcts-card overflow-hidden mb-8">
@@ -68,7 +125,8 @@ function TeacherDirectoryTable({ teacherDirectory, navigate }) {
               <p className="text-sm font-semibold text-slate-800 truncate">{t.name}</p>
               <p className="text-xs text-slate-400">{t.department || t.role}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <AdminHoursInput teacher={t} onSave={onSaveAdminTarget} />
               <button
                 onClick={() => navigate(`/timetable-upload?for=${t.id}`)}
                 title="Upload timetable for this teacher"
@@ -96,12 +154,16 @@ function TeacherDirectoryTable({ teacherDirectory, navigate }) {
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { teacherDirectory, tasks, substituteEntries, workEntries } = useWFCTS()
+  const { teacherDirectory, tasks, substituteEntries, workEntries, updateTeacherAdminTarget } = useWFCTS()
 
   return (
     <div>
       <QuickActions navigate={navigate} />
-      <TeacherDirectoryTable teacherDirectory={teacherDirectory} navigate={navigate} />
+      <TeacherDirectoryTable
+        teacherDirectory={teacherDirectory}
+        navigate={navigate}
+        onSaveAdminTarget={updateTeacherAdminTarget}
+      />
       <ManagerDashboardView
         user={user}
         roleLabel="Administrator Console"

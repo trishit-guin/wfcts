@@ -5,6 +5,7 @@ const Task = require('../models/Task')
 const IndustrySession = require('../models/IndustrySession')
 const TeacherTimetable = require('../models/TeacherTimetable')
 const { isTeacher, serializeCollection, toMinutes, hasOverlap } = require('../utils/routeHelpers')
+const { rankSubstituteCandidates } = require('../utils/substituteSettlement')
 
 async function getTeachers(_req, res, next) {
   try {
@@ -113,6 +114,92 @@ async function getAvailableTeachers(req, res, next) {
   }
 }
 
+async function getSubstituteSuggestions(req, res, next) {
+  try {
+    const { dayOfWeek, startTime, endTime, referenceTeacherId, excludeTeacherId, className } = req.query
+
+    const day = Number(dayOfWeek)
+    if (!Number.isInteger(day) || day < 0 || day > 6) {
+      const error = new Error('dayOfWeek must be an integer between 0 and 6')
+      error.statusCode = 400
+      throw error
+    }
+
+    const requestedStart = toMinutes(startTime, 'startTime')
+    const requestedEnd = toMinutes(endTime, 'endTime')
+    if (requestedStart >= requestedEnd) {
+      const error = new Error('endTime must be later than startTime')
+      error.statusCode = 400
+      throw error
+    }
+
+    let department = req.user.department
+    if (referenceTeacherId) {
+      const referenceTeacher = await User.findOne({ _id: referenceTeacherId, role: 'TEACHER' })
+      if (!referenceTeacher) {
+        const error = new Error('Reference teacher was not found')
+        error.statusCode = 404
+        throw error
+      }
+      department = referenceTeacher.department
+    }
+
+    const candidates = await User.find({ role: 'TEACHER', department }).sort({ name: 1 })
+    const excludedId = excludeTeacherId || referenceTeacherId || (isTeacher(req.user) ? String(req.user._id) : '')
+    const filteredCandidates = candidates.filter((t) => String(t._id) !== String(excludedId))
+    const candidateIds = filteredCandidates.map((t) => t._id)
+
+    const daySlots = await TeacherTimetable.find({ teacherId: { $in: candidateIds }, dayOfWeek: day })
+    const busyTeacherIds = new Set(
+      daySlots
+        .filter((slot) => {
+          const slotStart = toMinutes(slot.startTime, 'startTime')
+          const slotEnd = toMinutes(slot.endTime, 'endTime')
+          return hasOverlap(requestedStart, requestedEnd, slotStart, slotEnd)
+        })
+        .map((slot) => String(slot.teacherId)),
+    )
+    const availableTeachers = filteredCandidates.filter((t) => !busyTeacherIds.has(String(t._id)))
+    const availableIds = availableTeachers.map((t) => t._id)
+
+    const classNameTrimmed = className ? String(className).trim() : ''
+
+    const [allEntries, allTimetableSlots, classSlots] = await Promise.all([
+      SubstituteEntry.find({ direction: 'CREDIT', status: 'Pending', counterpartTeacherId: { $ne: null } }),
+      TeacherTimetable.find({ teacherId: { $in: availableIds } }),
+      classNameTrimmed
+        ? TeacherTimetable.find({ teacherId: { $in: availableIds }, className: classNameTrimmed })
+        : Promise.resolve([]),
+    ])
+
+    const timetableCountMap = new Map()
+    for (const slot of allTimetableSlots) {
+      const id = String(slot.teacherId)
+      timetableCountMap.set(id, (timetableCountMap.get(id) || 0) + 1)
+    }
+
+    const sameClassSet = new Set(classSlots.map((slot) => String(slot.teacherId)))
+
+    const ranked = rankSubstituteCandidates(availableTeachers, allEntries, timetableCountMap, sameClassSet)
+
+    res.json({
+      dayOfWeek: day,
+      startTime: String(startTime).trim(),
+      endTime: String(endTime).trim(),
+      className: classNameTrimmed,
+      suggestions: ranked.map(({ teacher, balance, workloadSlots, tier, classMatch }) => ({
+        ...teacher.toJSON(),
+        balance,
+        workloadSlots,
+        tier,
+        classMatch,
+      })),
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 async function patchTeacherTargets(req, res, next) {
   try {
     const { teacherId } = req.params
@@ -146,4 +233,4 @@ async function patchTeacherTargets(req, res, next) {
   }
 }
 
-module.exports = { getTeachers, getBootstrap, getManagers, getAvailableTeachers, patchTeacherTargets }
+module.exports = { getTeachers, getBootstrap, getManagers, getAvailableTeachers, getSubstituteSuggestions, patchTeacherTargets }

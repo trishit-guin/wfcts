@@ -68,6 +68,30 @@ function computeChainSettlements(entries) {
   }
 }
 
+function rankSubstituteCandidates(availableTeachers, allEntries, timetableCountMap, sameClassSet = new Set()) {
+  const balances = buildTeacherNetBalances(allEntries)
+
+  return availableTeachers
+    .map((teacher) => {
+      const id = String(teacher._id)
+      const balance = balances.get(id) || 0
+      const workloadSlots = timetableCountMap.get(id) || 0
+      const classMatch = sameClassSet.has(id)
+      // 0 = owes a sub, 1 = neutral, 2 = already has credits (ask last)
+      const tier = balance < 0 ? 0 : balance === 0 ? 1 : 2
+      return { teacher, balance, workloadSlots, tier, classMatch }
+    })
+    .sort((a, b) => {
+      // 1st: same-class teachers first
+      if (a.classMatch !== b.classMatch) return a.classMatch ? -1 : 1
+      // 2nd: debtor → neutral → creditor
+      if (a.tier !== b.tier) return a.tier - b.tier
+      // 3rd: lighter workload first
+      return a.workloadSlots - b.workloadSlots
+    })
+}
+
 module.exports = {
   computeChainSettlements,
+  rankSubstituteCandidates,
 }

@@ -84,8 +84,10 @@ function WeekCard({ week, isCurrent }) {
         </div>
         <div>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-500">Other</span>
-            <span className="font-semibold text-slate-700">{week.otherHours}h / {week.targets?.other ?? 20}h</span>
+            <span className="text-slate-500">Admin Work</span>
+            <span className="font-semibold text-slate-700">
+              {week.otherHours}h{week.targets?.admin != null ? ` / ${week.targets.admin}h` : ''}
+            </span>
           </div>
           <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
             <div
@@ -158,7 +160,7 @@ export default function WeeklyProgress() {
             Weekly Progress
           </h1>
           <p className="mt-2 max-w-lg text-sm text-[var(--wfcts-muted)]">
-            Track your 40h weekly target — 20h teaching + 20h other duties. History shows the last 16 weeks.
+            Teaching target is set from your timetable. Admin work target is configured by your department head. History shows the last 16 weeks.
           </p>
         </div>
         <button
@@ -197,9 +199,27 @@ export default function WeeklyProgress() {
 
                 <div className="flex gap-8">
                   {[
-                    { label: 'Teaching', hours: currentProgress.teachingHours, target: 20, pct: currentProgress.percentages?.teaching ?? 0, color: 'rgba(255,255,255,0.9)' },
-                    { label: 'Other', hours: currentProgress.otherHours, target: 20, pct: currentProgress.percentages?.other ?? 0, color: '#5eead4' },
-                    { label: 'Total', hours: currentProgress.totalHours, target: 40, pct: currentProgress.percentages?.total ?? 0, color: '#fbbf24' },
+                    {
+                      label: 'Teaching',
+                      hours: currentProgress.teachingHours,
+                      target: currentProgress.targets?.teaching,
+                      pct: currentProgress.percentages?.teaching ?? 0,
+                      color: 'rgba(255,255,255,0.9)',
+                    },
+                    {
+                      label: 'Admin Work',
+                      hours: currentProgress.otherHours,
+                      target: currentProgress.targets?.admin,
+                      pct: currentProgress.percentages?.other ?? 0,
+                      color: '#5eead4',
+                    },
+                    {
+                      label: 'Total',
+                      hours: currentProgress.totalHours,
+                      target: currentProgress.targets?.total,
+                      pct: currentProgress.percentages?.total ?? 0,
+                      color: '#fbbf24',
+                    },
                   ].map(({ label, hours, target, pct, color }) => (
                     <div key={label} className="flex flex-col items-center gap-2">
                       <div className="relative flex h-[72px] w-[72px] items-center justify-center">
@@ -208,7 +228,9 @@ export default function WeeklyProgress() {
                       </div>
                       <div className="text-center">
                         <p className="text-[0.6rem] font-bold uppercase tracking-wider text-white/60">{label}</p>
-                        <p className="text-sm font-bold text-white">{hours}h / {target}h</p>
+                        <p className="text-sm font-bold text-white">
+                          {hours}h{target != null && target > 0 ? ` / ${target}h` : ''}
+                        </p>
                       </div>
                     </div>
                   ))}

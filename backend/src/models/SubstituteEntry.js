@@ -36,6 +36,26 @@ const substituteEntrySchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    startTime: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    endTime: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    className: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    subject: {
+      type: String,
+      default: '',
+      trim: true,
+    },
   },
   {
     timestamps: true,
