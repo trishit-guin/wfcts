@@ -38,7 +38,7 @@ async function getTimetableSlots(req, res, next) {
 
 async function createTimetableSlot(req, res, next) {
   try {
-    const { teacherId, dayOfWeek, startTime, endTime, subject, className, location } = req.body || {}
+    const { teacherId, dayOfWeek, startTime, endTime, eventType, subject, className, location } = req.body || {}
 
     const day = Number(dayOfWeek)
     if (!Number.isInteger(day) || day < 0 || day > 6) {
@@ -79,10 +79,14 @@ async function createTimetableSlot(req, res, next) {
       dayOfWeek: day,
       startTime: String(startTime).trim(),
       endTime: String(endTime).trim(),
+      eventType: eventType || 'LECTURE',
       subject: subject ? String(subject).trim() : '',
       className: className ? String(className).trim() : '',
       location: location ? String(location).trim() : '',
+      assignedBy: req.user._id,
     })
+
+    await createTimetableCalendarEvents(slot, req.user._id)
 
     res.status(201).json({ timetableSlot: slot.toJSON() })
   } catch (error) {

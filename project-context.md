@@ -22,6 +22,9 @@ Current implementation status:
 - recurring weekly timetable slots are supported
 - free-teacher suggestions are automatic from timetable overlap rules
 - Work Scheduling Engine with Calendar UI is implemented (CalendarEvent model, week/month view, fairness weights, delegation, substitution linkage, auto WorkEntry on completion)
+- Calendar: timetable overlay blocks are clickable (open Schedule Event modal pre-filled with slot data)
+- Timetable: adding a slot manually (createTimetableSlot) now saves eventType and auto-calls createTimetableCalendarEvents → 16 weeks of CalendarEvents created immediately (same as upload flow)
+- Shared ClassPicker component (src/components/ClassPicker.jsx): replaces all Class/Section text inputs across Timetable, Calendar EventModal, TimetableUpload table, and Credits substitution forms. Lab → Batch (E/F/G/H/K/L/M/N) + Division (9/10/11); Lecture → Year (SE/TE) + Division (9/10/11); other types hide the field.
 - Timetable Upload: OCR (tesseract.js + pdf-parse) → rule-based parser → editable slot preview → 16-week CalendarEvent bulk creation
 - Weekly Progress: 40h target (20h teaching + 20h other), on-demand compute, history snapshots, arc progress UI
 - Export System: XLSX/CSV monthly export with Content-Disposition binary response

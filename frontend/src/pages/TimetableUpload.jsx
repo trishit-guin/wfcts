@@ -7,6 +7,7 @@ import {
   patchTimetableUploadRequest,
   saveTimetableUploadRequest,
 } from '../utils/api'
+import { ClassPicker } from '../components/ClassPicker'
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const EVENT_TYPES = ['LECTURE', 'LAB', 'ADMIN', 'EXTRA_DUTY', 'MEETING']
@@ -181,21 +182,29 @@ function SlotRow({ slot, index, teacherDirectory, onUpdate, onRemove }) {
           />
         </td>
         <td className="px-3 py-2">
-          <input
-            value={local.className}
-            onChange={(e) => setLocal({ ...local, className: e.target.value })}
-            placeholder="e.g. BCA-3A"
-            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs"
-          />
-        </td>
-        <td className="px-3 py-2">
           <select
             value={local.eventType}
-            onChange={(e) => setLocal({ ...local, eventType: e.target.value })}
+            onChange={(e) => setLocal({
+              ...local,
+              eventType: e.target.value,
+              className: e.target.value !== local.eventType ? '' : local.className,
+            })}
             className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs"
           >
             {EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
+        </td>
+        <td className="px-3 py-2">
+          {(local.eventType === 'LAB' || local.eventType === 'LECTURE') ? (
+            <ClassPicker
+              eventType={local.eventType}
+              value={local.className}
+              onChange={(val) => setLocal({ ...local, className: val })}
+              selectCls="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs"
+            />
+          ) : (
+            <span className="text-xs text-slate-400">—</span>
+          )}
         </td>
         <td className="px-3 py-2">
           <select
@@ -236,13 +245,13 @@ function SlotRow({ slot, index, teacherDirectory, onUpdate, onRemove }) {
       <td className="px-3 py-3 text-xs font-semibold text-[var(--wfcts-primary)]">
         {slot.subject || <span className="italic text-slate-400">—</span>}
       </td>
-      <td className="px-3 py-3 text-xs text-slate-600">
-        {slot.className || <span className="italic text-slate-400">—</span>}
-      </td>
       <td className="px-3 py-3">
         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.62rem] font-bold ${EVENT_TYPE_COLORS[slot.eventType] || 'bg-slate-100 text-slate-600'}`}>
           {slot.eventType}
         </span>
+      </td>
+      <td className="px-3 py-3 text-xs text-slate-600">
+        {slot.className || <span className="italic text-slate-400">—</span>}
       </td>
       <td className="px-3 py-3 text-xs text-slate-600">
         {teacher ? teacher.name : (
@@ -452,8 +461,8 @@ export default function TimetableUpload() {
                     <th className="px-3 py-3 text-[0.62rem] font-bold uppercase tracking-wider text-slate-400">Day</th>
                     <th className="px-3 py-3 text-[0.62rem] font-bold uppercase tracking-wider text-slate-400">Time</th>
                     <th className="px-3 py-3 text-[0.62rem] font-bold uppercase tracking-wider text-slate-400">Subject</th>
-                    <th className="px-3 py-3 text-[0.62rem] font-bold uppercase tracking-wider text-slate-400">Class</th>
                     <th className="px-3 py-3 text-[0.62rem] font-bold uppercase tracking-wider text-slate-400">Type</th>
+                    <th className="px-3 py-3 text-[0.62rem] font-bold uppercase tracking-wider text-slate-400">Class</th>
                     <th className="px-3 py-3 text-[0.62rem] font-bold uppercase tracking-wider text-slate-400">Teacher</th>
                     <th className="px-3 py-3 text-center text-[0.62rem] font-bold uppercase tracking-wider text-slate-400">Actions</th>
                   </tr>

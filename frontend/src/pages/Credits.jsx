@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
 import { formatDate } from '../utils/formatDate'
+import { ClassPicker } from '../components/ClassPicker'
 
 function dayOfWeekFromDate(dateText) {
   const [y, m, d] = dateText.split('-').map(Number)
@@ -22,28 +23,26 @@ function initials(name) {
 function directionMeta(direction) {
   if (direction === 'SUBSTITUTION') {
     return {
-      label: 'Sub Taken',
-      icon: 'history_edu',
-      iconClass: 'bg-orange-100 text-[#7c2d12]',
-      badgeClass: 'bg-orange-100 text-[#7c2d12]',
+      label: 'Covered For Me',
+      icon: 'swap_horiz',
+      iconClass: 'bg-orange-50 text-orange-600',
+      badgeClass: 'bg-orange-100 text-orange-700',
       delta: '-1',
-      description: 'Covered by',
+      sentence: (name) => `${name} covered my class`,
+      deltaColor: 'text-orange-600',
     }
   }
   return {
-    label: 'Credit',
+    label: 'I Covered',
     icon: 'assignment_turned_in',
-    iconClass: 'bg-(--wfcts-secondary)/12 text-(--wfcts-secondary)',
-    badgeClass: 'bg-(--wfcts-secondary)/14 text-(--wfcts-secondary)',
+    iconClass: 'bg-emerald-50 text-emerald-600',
+    badgeClass: 'bg-emerald-100 text-emerald-700',
     delta: '+1',
-    description: 'Covered for',
+    sentence: (name) => `I covered ${name}'s class`,
+    deltaColor: 'text-emerald-600',
   }
 }
 
-function statusClasses(status) {
-  if (status === 'Repaid') return 'bg-(--wfcts-secondary)/14 text-(--wfcts-secondary)'
-  return 'bg-orange-100 text-[#7c2d12]'
-}
 
 function SummaryTile({ label, value, tone }) {
   const tones = {
@@ -87,6 +86,7 @@ export default function Credits() {
     date: new Date().toISOString().slice(0, 10),
     startTime: '',
     endTime: '',
+    eventType: 'LECTURE',
     className: '',
     subject: '',
   })
@@ -223,6 +223,7 @@ export default function Credits() {
         date: new Date().toISOString().slice(0, 10),
         startTime: '',
         endTime: '',
+        eventType: 'LECTURE',
         className: '',
         subject: '',
       })
@@ -267,9 +268,9 @@ export default function Credits() {
           Substitutions
         </h2>
         <div className="rounded-[1.4rem] bg-(--wfcts-secondary)/12 px-5 py-4 text-right">
-          <p className="text-[0.62rem] font-bold uppercase tracking-[0.22em] text-(--wfcts-secondary)/80">Balance</p>
-          <p className="font-headline text-2xl font-extrabold tracking-[-0.04em] text-(--wfcts-secondary)">
-            {netBalance > 0 ? '+' : ''}{netBalance}
+          <p className="text-[0.62rem] font-bold uppercase tracking-[0.22em] text-(--wfcts-secondary)/80">Net Balance</p>
+          <p className="font-headline text-xl font-extrabold tracking-[-0.04em] text-(--wfcts-secondary)">
+            {netBalance > 0 ? `+${netBalance} owed to you` : netBalance < 0 ? `${netBalance} — you owe` : 'All square ✓'}
           </p>
         </div>
       </section>
@@ -278,7 +279,7 @@ export default function Credits() {
         <div className="space-y-6">
 
           {/* ── Right Now card ──────────────────────────────────────────────── */}
-          <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-(--wfcts-primary) to-[#284bb0] p-6 text-white shadow-[0_24px_60px_rgba(30,58,138,0.22)]">
+          <section className="relative overflow-hidden rounded-4xl bg-linear-to-br from-(--wfcts-primary) to-[#284bb0] p-6 text-white shadow-[0_24px_60px_rgba(30,58,138,0.22)]">
             <div className="absolute right-[-12%] top-[-18%] h-40 w-40 rounded-full bg-white/8 blur-3xl" />
             <div className="relative z-10">
               <div className="mb-4 flex items-center gap-2">
@@ -291,7 +292,7 @@ export default function Credits() {
               </div>
 
               {displaySlot ? (
-                <div className="rounded-[1.5rem] border border-white/8 bg-white/10 p-4 backdrop-blur-sm">
+                <div className="rounded-3xl border border-white/8 bg-white/10 p-4 backdrop-blur-sm">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-lg font-extrabold tracking-[-0.03em] text-white">
@@ -305,21 +306,21 @@ export default function Credits() {
                       <p className="mt-1 text-sm text-blue-100">
                         {displaySlot.startTime} – {displaySlot.endTime}
                         {activeSlot && (
-                          <span className="ml-2 rounded-full bg-emerald-400/25 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.1em] text-emerald-200">Live</span>
+                          <span className="ml-2 rounded-full bg-emerald-400/25 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-widest text-emerald-200">Live</span>
                         )}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => openWithSlot(displaySlot)}
-                      className="shrink-0 rounded-[1rem] bg-(--wfcts-secondary-soft) px-4 py-2.5 text-xs font-bold uppercase tracking-[0.14em] text-[#032521] transition-transform active:scale-[0.98]"
+                      className="shrink-0 rounded-2xl bg-(--wfcts-secondary-soft) px-4 py-2.5 text-xs font-bold uppercase tracking-[0.14em] text-[#032521] transition-transform active:scale-[0.98]"
                     >
                       Find Sub
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="rounded-[1.5rem] border border-white/8 bg-white/10 p-4 backdrop-blur-sm">
+                <div className="rounded-3xl border border-white/8 bg-white/10 p-4 backdrop-blur-sm">
                   <p className="text-sm text-blue-100">
                     No classes scheduled for today. Use the actions below to log a substitution manually.
                   </p>
@@ -333,8 +334,8 @@ export default function Credits() {
             <div className="flex w-fit rounded-full bg-(--wfcts-surface-muted) p-1">
               {[
                 { key: 'ALL', label: 'All' },
-                { key: 'CREDIT', label: 'Credits' },
-                { key: 'SUBSTITUTION', label: 'Subs' },
+                { key: 'CREDIT', label: 'I Covered' },
+                { key: 'SUBSTITUTION', label: 'Covered For Me' },
               ].map((item) => (
                 <button
                   key={item.key}
@@ -427,10 +428,30 @@ export default function Credits() {
                     />
                   </label>
                   <label className="col-span-2 space-y-1.5 sm:col-span-1">
-                    <span className="text-xs font-semibold text-slate-600">Class <span className="text-red-500">*</span></span>
-                    <input type="text" placeholder="e.g. TE-10" value={form.className}
-                      onChange={(e) => setForm((p) => ({ ...p, className: e.target.value }))}
+                    <span className="text-xs font-semibold text-slate-600">Type <span className="text-red-500">*</span></span>
+                    <select value={form.eventType}
+                      onChange={(e) => setForm((p) => ({
+                        ...p,
+                        eventType: e.target.value,
+                        className: e.target.value !== p.eventType ? '' : p.className,
+                      }))}
                       className={inputCls}
+                    >
+                      <option value="LECTURE">Lecture</option>
+                      <option value="LAB">Lab</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="mt-3">
+                  <label className="space-y-1.5">
+                    <span className="text-xs font-semibold text-slate-600">
+                      {form.eventType === 'LAB' ? 'Batch & Division' : 'Year & Division'} <span className="text-red-500">*</span>
+                    </span>
+                    <ClassPicker
+                      eventType={form.eventType}
+                      value={form.className}
+                      onChange={(val) => setForm((p) => ({ ...p, className: val }))}
+                      selectCls={inputCls}
                     />
                   </label>
                 </div>
@@ -479,9 +500,9 @@ export default function Credits() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             {teacher.classMatch && (
-                              <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.1em] text-indigo-700">Same Class</span>
+                              <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-widest text-indigo-700">Same Class</span>
                             )}
-                            <span className={`rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.1em] ${tierMeta.chipClass}`}>{tierMeta.label}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-widest ${tierMeta.chipClass}`}>{tierMeta.label}</span>
                           </div>
                         </button>
                       )
@@ -534,10 +555,28 @@ export default function Credits() {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className="text-xs font-semibold text-slate-600">Class / Division <span className="text-red-500">*</span></span>
-                  <input type="text" placeholder="e.g. TE-10" value={form.className}
-                    onChange={(e) => setForm((p) => ({ ...p, className: e.target.value }))}
+                  <span className="text-xs font-semibold text-slate-600">Type <span className="text-red-500">*</span></span>
+                  <select value={form.eventType}
+                    onChange={(e) => setForm((p) => ({
+                      ...p,
+                      eventType: e.target.value,
+                      className: e.target.value !== p.eventType ? '' : p.className,
+                    }))}
                     className={inputGreenCls}
+                  >
+                    <option value="LECTURE">Lecture</option>
+                    <option value="LAB">Lab</option>
+                  </select>
+                </label>
+                <label className="space-y-1.5 sm:col-span-2">
+                  <span className="text-xs font-semibold text-slate-600">
+                    {form.eventType === 'LAB' ? 'Batch & Division' : 'Year & Division'} <span className="text-red-500">*</span>
+                  </span>
+                  <ClassPicker
+                    eventType={form.eventType}
+                    value={form.className}
+                    onChange={(val) => setForm((p) => ({ ...p, className: val }))}
+                    selectCls={inputGreenCls}
                   />
                 </label>
                 <label className="space-y-1.5">
@@ -752,28 +791,36 @@ export default function Credits() {
             ) : (
               filteredLedger.map((entry) => {
                 const meta = directionMeta(entry.direction)
+                const isCover = entry.direction === 'CREDIT'
                 return (
-                  <div key={entry.id} className="wfcts-card flex items-center gap-4 p-5 transition-colors hover:bg-white">
+                  <div key={entry.id} className={`wfcts-card flex items-center gap-4 p-5 transition-colors hover:bg-white border-l-4 ${isCover ? 'border-l-emerald-400' : 'border-l-orange-400'}`}>
                     <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${meta.iconClass}`}>
-                      <span className="material-symbols-outlined">{meta.icon}</span>
+                      <span className="material-symbols-outlined text-[1.2rem]">{meta.icon}</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <h5 className="truncate text-sm font-bold text-slate-900">{entry.counterpartName}</h5>
-                        <span className="font-headline text-lg font-extrabold text-(--wfcts-primary)">{meta.delta}</span>
+                        <div>
+                          <p className="text-[0.62rem] font-bold uppercase tracking-[0.16em] text-(--wfcts-muted)">
+                            {isCover ? 'You covered' : 'Covered for you'}
+                          </p>
+                          <h5 className="truncate text-sm font-bold text-slate-900">{entry.counterpartName}</h5>
+                        </div>
+                        <span className={`font-headline text-xl font-extrabold ${meta.deltaColor}`}>{meta.delta}</span>
                       </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <p className="text-xs text-(--wfcts-muted)">{formatDate(entry.date)}</p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="text-xs text-(--wfcts-muted)">{formatDate(entry.date)}</span>
                         {entry.className && (
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.6rem] font-bold text-slate-500">{entry.className}</span>
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.6rem] font-semibold text-slate-600">{entry.className}</span>
                         )}
                         {entry.startTime && (
                           <span className="text-[0.6rem] text-(--wfcts-muted)">{entry.startTime}–{entry.endTime}</span>
                         )}
-                      </div>
-                      <div className="mt-1.5 flex items-center gap-2">
-                        <span className={`rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] ${meta.badgeClass}`}>{meta.label}</span>
-                        <span className={`rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] ${statusClasses(entry.status)}`}>{entry.status}</span>
+                        {entry.subject && (
+                          <span className="text-[0.6rem] text-(--wfcts-muted)">{entry.subject}</span>
+                        )}
+                        <span className={`rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.12em] ${entry.status === 'Repaid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {entry.status === 'Repaid' ? 'Settled' : 'Pending'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -785,8 +832,8 @@ export default function Credits() {
 
         {/* ── Sidebar ────────────────────────────────────────────────────────── */}
         <aside className="space-y-5">
-          <SummaryTile label="Credits Given" value={creditsGiven.length} tone="primary" />
-          <SummaryTile label="Subs Taken" value={substitutionsReceived.length} tone="secondary" />
+          <SummaryTile label="Classes I Covered" value={creditsGiven.length} tone="primary" />
+          <SummaryTile label="Times Covered For Me" value={substitutionsReceived.length} tone="secondary" />
           <SummaryTile label="Pending" value={pendingCount} tone="tertiary" />
 
           {combinedLedger.length > 0 && (
@@ -794,15 +841,17 @@ export default function Credits() {
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-(--wfcts-muted) mb-3">Recent Activity</p>
               <div className="space-y-2">
                 {combinedLedger.slice(0, 5).map((entry) => {
-                  const meta = directionMeta(entry.direction)
+                  const isCover = entry.direction === 'CREDIT'
                   return (
                     <div key={entry.id} className="flex items-center gap-3 rounded-2xl bg-(--wfcts-surface-muted) px-3 py-2.5">
-                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[0.65rem] font-bold ${meta.iconClass}`}>
-                        {meta.delta}
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[0.65rem] font-bold ${isCover ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
+                        {isCover ? '+1' : '-1'}
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-semibold text-slate-800">{entry.counterpartName}</p>
-                        <p className="text-[0.62rem] text-(--wfcts-muted)">{formatDate(entry.date)}{entry.className ? ` · ${entry.className}` : ''}</p>
+                        <p className="text-[0.62rem] text-(--wfcts-muted)">
+                          {isCover ? 'You covered' : 'Covered for you'} · {formatDate(entry.date)}
+                        </p>
                       </div>
                     </div>
                   )

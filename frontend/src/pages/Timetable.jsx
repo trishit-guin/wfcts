@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
+import { ClassPicker, LAB_BATCHES, LECTURE_YEARS, CLASS_DIVISIONS, parseClassNameParts } from '../components/ClassPicker'
 
 const dayOptions = [
   { value: 1, short: 'Mon', label: 'Monday' },
@@ -17,6 +18,7 @@ function currentSelectedDay() {
   const currentDay = new Date().getDay()
   return dayOptions.some((day) => day.value === currentDay) ? currentDay : 1
 }
+
 
 function formatTime(value) {
   if (!value || !value.includes(':')) return value || ''
@@ -77,7 +79,20 @@ export default function Timetable() {
     [selectedDay, visibleSlots],
   )
 
-  const nextSession = selectedDaySlots[0] || visibleSlots[0]
+  const currentHHMM = useMemo(() => {
+    const now = new Date()
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  }, [])
+
+  const nextSession = useMemo(() => {
+    const today = new Date().getDay()
+    if (selectedDay === today) {
+      // On today's view: prefer next upcoming slot, then any remaining today, then first of any other day
+      const upcoming = selectedDaySlots.find((s) => s.startTime >= currentHHMM)
+      return upcoming || selectedDaySlots[0] || visibleSlots[0]
+    }
+    return selectedDaySlots[0] || visibleSlots[0]
+  }, [selectedDay, selectedDaySlots, visibleSlots, currentHHMM])
 
   function resetForm(nextDay = selectedDay) {
     setForm({
@@ -85,6 +100,7 @@ export default function Timetable() {
       dayOfWeek: nextDay,
       startTime: '09:00',
       endTime: '10:00',
+      eventType: 'LECTURE',
       subject: '',
       className: '',
       location: '',
@@ -105,6 +121,7 @@ export default function Timetable() {
       dayOfWeek: slot.dayOfWeek,
       startTime: slot.startTime,
       endTime: slot.endTime,
+      eventType: slot.eventType || 'LECTURE',
       subject: slot.subject || '',
       className: slot.className || '',
       location: slot.location || '',
@@ -133,6 +150,7 @@ export default function Timetable() {
       dayOfWeek: Number(form.dayOfWeek),
       startTime: form.startTime,
       endTime: form.endTime,
+      eventType: form.eventType || 'LECTURE',
       subject: form.subject,
       className: form.className,
       location: form.location,
@@ -316,6 +334,29 @@ export default function Timetable() {
                   </label>
 
                   <label className="space-y-2">
+                    <span className="text-sm font-semibold text-slate-700">Type</span>
+                    <select
+                      value={form.eventType}
+                      onChange={(event) => {
+                        const next = event.target.value
+                        const structured = (t) => t === 'LAB' || t === 'LECTURE'
+                        setForm((prev) => ({
+                          ...prev,
+                          eventType: next,
+                          className: structured(next) !== structured(prev.eventType) ? '' : prev.className,
+                        }))
+                      }}
+                      className="w-full rounded-[1rem] border border-slate-200 bg-[var(--wfcts-surface-muted)] px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[var(--wfcts-primary)]/20 focus:bg-white focus:ring-2 focus:ring-[var(--wfcts-primary)]/10"
+                    >
+                      <option value="LECTURE">Lecture</option>
+                      <option value="LAB">Lab</option>
+                      <option value="ADMIN">Admin</option>
+                      <option value="EXTRA_DUTY">Extra Duty</option>
+                      <option value="MEETING">Meeting</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-2">
                     <span className="text-sm font-semibold text-slate-700">Subject</span>
                     <input
                       type="text"
@@ -346,16 +387,19 @@ export default function Timetable() {
                     />
                   </label>
 
-                  <label className="space-y-2">
-                    <span className="text-sm font-semibold text-slate-700">Class / Section</span>
-                    <input
-                      type="text"
-                      value={form.className}
-                      onChange={(event) => setForm((prev) => ({ ...prev, className: event.target.value }))}
-                      placeholder="Class / Division"
-                      className="w-full rounded-[1rem] border border-slate-200 bg-[var(--wfcts-surface-muted)] px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[var(--wfcts-primary)]/20 focus:bg-white focus:ring-2 focus:ring-[var(--wfcts-primary)]/10"
-                    />
-                  </label>
+                  {(form.eventType === 'LAB' || form.eventType === 'LECTURE') && (
+                    <div className="space-y-2 md:col-span-2">
+                      <span className="text-sm font-semibold text-slate-700">
+                        {form.eventType === 'LAB' ? 'Batch & Division' : 'Year & Division'}
+                      </span>
+                      <ClassPicker
+                        eventType={form.eventType}
+                        value={form.className}
+                        onChange={(val) => setForm((prev) => ({ ...prev, className: val }))}
+                        selectCls="flex-1 rounded-2xl border border-slate-200 bg-(--wfcts-surface-muted) px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-(--wfcts-primary)/20 focus:bg-white focus:ring-2 focus:ring-(--wfcts-primary)/10"
+                      />
+                    </div>
+                  )}
 
                   <label className="space-y-2 md:col-span-2">
                     <span className="text-sm font-semibold text-slate-700">Location</span>
@@ -410,18 +454,27 @@ export default function Timetable() {
                 </p>
               </div>
             ) : (
-              selectedDaySlots.map((slot, index) => (
+              selectedDaySlots.map((slot, index) => {
+              const isNowDay = new Date().getDay() === selectedDay
+              const isActive = isNowDay && slot.startTime <= currentHHMM && currentHHMM < slot.endTime
+              const isNext = isNowDay && !isActive && slot.startTime >= currentHHMM
+                && selectedDaySlots.findIndex((s) => s.startTime >= currentHHMM) === index
+              const slotLabel = isActive ? 'Active Now' : isNext ? 'Up Next' : slot.eventType || 'Lecture'
+
+              return (
                 <div
                   key={slot.id}
                   className={`rounded-[1.6rem] p-5 transition-all ${index % 2 === 0 ? 'wfcts-card' : 'wfcts-card-muted'}`}
                 >
                   <div className="mb-4 flex items-start justify-between gap-4">
                     <div className={`rounded-full px-3 py-1 text-[0.64rem] font-bold uppercase tracking-[0.18em] ${
-                      index === 0
-                        ? 'bg-[var(--wfcts-secondary)]/12 text-[var(--wfcts-secondary)]'
-                        : 'bg-[var(--wfcts-primary)]/10 text-[var(--wfcts-primary)]'
+                      isActive
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : isNext
+                          ? 'bg-(--wfcts-secondary)/12 text-(--wfcts-secondary)'
+                          : 'bg-(--wfcts-primary)/10 text-(--wfcts-primary)'
                     }`}>
-                      {index === 0 ? 'Active Slot' : 'Lecture'}
+                      {slotLabel}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -443,7 +496,7 @@ export default function Timetable() {
 
                   <div className="flex gap-4">
                     <div className="flex min-w-[4.5rem] flex-col items-center justify-center border-r border-slate-200 pr-4">
-                      <span className={`font-headline text-2xl font-extrabold leading-none ${index === 0 ? 'text-[var(--wfcts-primary)]' : 'text-slate-500'}`}>
+                      <span className={`font-headline text-2xl font-extrabold leading-none ${isActive ? 'text-emerald-600' : 'text-(--wfcts-primary)'}`}>
                         {formatTime(slot.startTime)}
                       </span>
                       <span className="mt-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-slate-400">
@@ -455,11 +508,11 @@ export default function Timetable() {
                       <h3 className="font-headline text-xl font-bold leading-tight text-slate-900">
                         {slot.subject || 'Scheduled Slot'}
                       </h3>
-                      <p className="mt-1 text-sm text-[var(--wfcts-muted)]">
+                      <p className="mt-1 text-sm text-(--wfcts-muted)">
                         {slot.className || 'Class not specified'}{slot.location ? ` • ${slot.location}` : ''}
                       </p>
                       {isManager && (
-                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--wfcts-primary)]">
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-(--wfcts-primary)">
                           {teacherNameById.get(slot.teacherId) || 'Teacher'}
                         </p>
                       )}
@@ -477,7 +530,8 @@ export default function Timetable() {
                     </div>
                   </div>
                 </div>
-              ))
+              )
+            })
             )}
           </div>
         </div>

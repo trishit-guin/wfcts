@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
-import { getManagersRequest, exportMonthlyRequest, getUserCalendarEventsRequest } from '../utils/api'
+import { getManagersRequest, exportMonthlyRequest, getUserCalendarEventsRequest, getSubstituteSuggestionsRequest } from '../utils/api'
+import { ClassPicker } from '../components/ClassPicker'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,16 @@ function timeToMin(t) {
   return h * 60 + m
 }
 
+function initials(name) {
+  if (!name) return '?'
+  return name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
+}
+
+function dayOfWeekFromDateStr(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d).getDay()
+}
+
 
 function calcTop(startTime) {
   const startMin = timeToMin(startTime)
@@ -90,7 +101,10 @@ function getWeekDays(weekStart) {
 }
 
 function toISODate(date) {
-  return date.toISOString().slice(0, 10)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function isSameDay(d1, d2) {
@@ -190,20 +204,23 @@ function EventBlock({ event, onClick, teacherDirectory }) {
   )
 }
 
-function TimetableOverlay({ slot }) {
+function TimetableOverlay({ slot, onClick }) {
   const top = calcTop(slot.startTime)
   const height = calcHeight(slot.startTime, slot.endTime)
   return (
-    <div
-      className="pointer-events-none absolute inset-x-0 rounded-md border border-slate-200 bg-slate-100/50"
+    <button
+      type="button"
+      onClick={onClick}
+      title={`${slot.subject || 'Class'}${slot.className ? ` · ${slot.className}` : ''} (${slot.startTime}–${slot.endTime}) — click to schedule`}
+      className="absolute inset-x-0 rounded-md border border-slate-200 bg-slate-100/50 text-left transition-colors hover:bg-indigo-50/60 hover:border-indigo-200"
       style={{ top: `${top}px`, height: `${height}px`, zIndex: 1 }}
     >
       {height > 24 && (
         <p className="truncate px-1.5 pt-1 text-[0.5rem] font-medium text-slate-400">
-          {slot.subject || 'Class'}
+          {slot.subject || 'Class'}{slot.className ? ` · ${slot.className}` : ''}
         </p>
       )}
-    </div>
+    </button>
   )
 }
 
@@ -302,20 +319,20 @@ function Legend() {
 
 // ─── Event Create/Edit Modal ──────────────────────────────────────────────────
 
-function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user, tasks }) {
+function EventModal({ onClose, onSave, initial, prefill, teacherDirectory, managers, user, tasks }) {
   const isEdit = Boolean(initial)
   const defaultAssigned = user.role === 'TEACHER' ? user.id : ''
 
   const [form, setForm] = useState({
-    title: initial?.title || '',
+    title: initial?.title || prefill?.title || '',
     description: initial?.description || '',
-    date: initial?.date || toISODate(new Date()),
-    startTime: initial?.startTime || '09:00',
-    endTime: initial?.endTime || '10:00',
-    eventType: initial?.eventType || 'LECTURE',
-    subject: initial?.subject || '',
-    className: initial?.className || '',
-    location: initial?.location || '',
+    date: initial?.date || prefill?.date || toISODate(new Date()),
+    startTime: initial?.startTime || prefill?.startTime || '09:00',
+    endTime: initial?.endTime || prefill?.endTime || '10:00',
+    eventType: initial?.eventType || prefill?.eventType || 'LECTURE',
+    subject: initial?.subject || prefill?.subject || '',
+    className: initial?.className || prefill?.className || '',
+    location: initial?.location || prefill?.location || '',
     assignedTo: initial?.assignedTo || defaultAssigned,
     linkedTaskId: initial?.linkedTaskId || '',
     forManager: false,
@@ -325,7 +342,13 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
 
   const isTeacher = user.role === 'TEACHER'
 
-  const handleChange = (field, value) => setForm((f) => ({ ...f, [field]: value }))
+  const handleChange = (field, value) => setForm((f) => {
+    if (field === 'eventType') {
+      const structured = (t) => t === 'LAB' || t === 'LECTURE'
+      return { ...f, eventType: value, className: structured(value) !== structured(f.eventType) ? '' : f.className }
+    }
+    return { ...f, [field]: value }
+  })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -472,24 +495,14 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
           )}
 
           {/* Subject / Class / Location */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Subject</label>
               <input
                 type="text"
                 value={form.subject}
                 onChange={(e) => handleChange('subject', e.target.value)}
-                placeholder="e.g. CS401"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Class</label>
-              <input
-                type="text"
-                value={form.className}
-                onChange={(e) => handleChange('className', e.target.value)}
-                placeholder="e.g. CS-7A"
+                placeholder="e.g. OS"
                 className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
               />
             </div>
@@ -504,6 +517,19 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
               />
             </div>
           </div>
+          {(form.eventType === 'LAB' || form.eventType === 'LECTURE') && (
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-600">
+                {form.eventType === 'LAB' ? 'Batch & Division' : 'Year & Division'}
+              </label>
+              <ClassPicker
+                eventType={form.eventType}
+                value={form.className}
+                onChange={(val) => handleChange('className', val)}
+                selectCls="flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
+              />
+            </div>
+          )}
 
           {/* Assign To (manager view) */}
           {!isTeacher && teacherDirectory.length > 0 && (
@@ -602,11 +628,27 @@ function EventModal({ onClose, onSave, initial, teacherDirectory, managers, user
 
 // ─── Event Detail Drawer ──────────────────────────────────────────────────────
 
-function EventDrawer({ event, onClose, teacherDirectory, user, onComplete, onApprove, onReject, onCancel, onSubstitute, onEdit }) {
+function EventDrawer({ event, onClose, teacherDirectory, user, onComplete, onApprove, onReject, onCancel, onSubstitute, onEdit, fetchSubSuggestions }) {
   const [showSubModal, setShowSubModal] = useState(false)
   const [subTeacherId, setSubTeacherId] = useState('')
   const [acting, setActing] = useState('')
   const [actionError, setActionError] = useState('')
+  const [subSuggestions, setSubSuggestions] = useState([])
+  const [subLoading, setSubLoading] = useState(false)
+
+  useEffect(() => {
+    if (!showSubModal || !fetchSubSuggestions) return
+    setSubLoading(true)
+    setSubSuggestions([])
+    fetchSubSuggestions({
+      dayOfWeek: dayOfWeekFromDateStr(event.date),
+      startTime: event.startTime,
+      endTime: event.endTime,
+      referenceTeacherId: event.assignedTo,
+      excludeTeacherId: event.assignedTo,
+      ...(event.className ? { className: event.className } : {}),
+    }).then(setSubSuggestions).catch(() => {}).finally(() => setSubLoading(false))
+  }, [showSubModal, event.date, event.startTime, event.endTime, event.assignedTo, event.className, fetchSubSuggestions])
 
   const colors = EVENT_COLORS[event.eventType] || EVENT_COLORS.ADMIN
   const assigneeName = teacherDirectory.find((t) => t.id === event.assignedTo)?.name || event.assignedTo
@@ -757,22 +799,51 @@ function EventDrawer({ event, onClose, teacherDirectory, user, onComplete, onApp
 
           {/* Substitute picker */}
           {showSubModal && (
-            <div className="mb-4 rounded-2xl border border-slate-200 p-4">
-              <p className="mb-2 text-xs font-bold text-slate-700">Select Substitute Teacher</p>
-              <select
-                value={subTeacherId}
-                onChange={(e) => setSubTeacherId(e.target.value)}
-                className="mb-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-(--wfcts-primary)"
-              >
-                <option value="">Select teacher...</option>
-                {teacherDirectory.filter((t) => t.id !== event.assignedTo).map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+            <div className="mb-4 rounded-2xl border border-slate-200 p-4 space-y-3">
+              <p className="text-xs font-bold text-slate-700">Available Substitutes</p>
+              <p className="text-[0.65rem] text-slate-500">Ranked by fairness: teachers who owe a sub first, then by workload.</p>
+
+              {subLoading ? (
+                <p className="text-xs text-slate-400 py-2">Finding available teachers...</p>
+              ) : subSuggestions.length === 0 ? (
+                <p className="text-xs text-slate-500 py-2">No free teachers found for this slot. Try checking the Substitutions page for manual selection.</p>
+              ) : (
+                <div className="space-y-1.5 max-h-52 overflow-y-auto">
+                  {subSuggestions.map((teacher) => {
+                    const tierMeta = teacher.tier === 0
+                      ? { label: 'Owes Sub', cls: 'bg-orange-100 text-orange-700' }
+                      : teacher.tier === 2
+                        ? { label: 'Has Credits', cls: 'bg-blue-100 text-blue-700' }
+                        : { label: 'Balanced', cls: 'bg-slate-100 text-slate-500' }
+                    const isSelected = subTeacherId === teacher.id
+                    return (
+                      <button
+                        key={teacher.id}
+                        type="button"
+                        onClick={() => setSubTeacherId(teacher.id)}
+                        className={`w-full flex items-center justify-between rounded-xl border-2 px-3 py-2 text-left transition-all ${isSelected ? 'border-(--wfcts-primary) bg-(--wfcts-primary)/5' : 'border-slate-100 bg-slate-50 hover:border-slate-300'}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${isSelected ? 'bg-(--wfcts-primary) text-white' : 'bg-white text-slate-500 shadow-sm'}`}>
+                            {initials(teacher.name)}
+                          </div>
+                          <span className={`text-sm font-semibold ${isSelected ? 'text-(--wfcts-primary)' : 'text-slate-700'}`}>{teacher.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {teacher.classMatch && (
+                            <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[0.55rem] font-bold text-indigo-700">Same Class</span>
+                          )}
+                          <span className={`rounded-full px-1.5 py-0.5 text-[0.55rem] font-bold ${tierMeta.cls}`}>{tierMeta.label}</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
               {subTeacherId && (
-                <div className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-[0.65rem] text-amber-700">
-                  <strong>Credit/Debt impact:</strong> {teacherDirectory.find((t) => t.id === subTeacherId)?.name} earns +1 CREDIT.
-                  {' '}{assigneeName} incurs +1 SUBSTITUTION debt. Settlement engine updated automatically.
+                <div className="rounded-xl bg-amber-50 px-3 py-2 text-[0.65rem] text-amber-700">
+                  {teacherDirectory.find((t) => t.id === subTeacherId)?.name} earns +1 credit · {assigneeName} incurs a substitution debt. Settlement engine updated automatically.
                 </div>
               )}
               <div className="flex gap-2">
@@ -784,7 +855,7 @@ function EventDrawer({ event, onClose, teacherDirectory, user, onComplete, onApp
                 </button>
                 <button
                   onClick={handleSubstitute}
-                  disabled={acting === 'sub'}
+                  disabled={acting === 'sub' || !subTeacherId}
                   className="flex-1 rounded-xl bg-rose-500 py-2 text-xs font-bold text-white shadow-sm hover:bg-rose-600 disabled:opacity-60"
                 >
                   {acting === 'sub' ? 'Processing...' : 'Confirm Substitution'}
@@ -886,7 +957,13 @@ export default function Calendar() {
   const [isLoading, setIsLoading] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState('')
+  const [slotPrefill, setSlotPrefill] = useState(null)
   const gridRef = useRef(null)
+
+  const fetchSubSuggestions = useCallback(async (params) => {
+    const result = await getSubstituteSuggestionsRequest(token, params)
+    return result.suggestions || []
+  }, [token])
 
   const handleExport = async () => {
     setIsExporting(true)
@@ -1207,7 +1284,23 @@ export default function Calendar() {
 
                     {/* Timetable slots overlay */}
                     {daySlots.map((slot) => (
-                      <TimetableOverlay key={slot.id} slot={slot} />
+                      <TimetableOverlay
+                        key={slot.id}
+                        slot={slot}
+                        onClick={() => {
+                          setSlotPrefill({
+                            title: slot.subject || 'Class',
+                            date: toISODate(day),
+                            startTime: slot.startTime,
+                            endTime: slot.endTime,
+                            eventType: slot.eventType || 'LECTURE',
+                            subject: slot.subject || '',
+                            className: slot.className || '',
+                            location: slot.location || '',
+                          })
+                          setShowCreateModal(true)
+                        }}
+                      />
                     ))}
 
                     {/* Calendar events */}
@@ -1244,9 +1337,10 @@ export default function Calendar() {
       {/* Modals */}
       {(showCreateModal || editingEvent) && (
         <EventModal
-          onClose={() => { setShowCreateModal(false); setEditingEvent(null) }}
+          onClose={() => { setShowCreateModal(false); setEditingEvent(null); setSlotPrefill(null) }}
           onSave={handleSaveEvent}
           initial={editingEvent}
+          prefill={slotPrefill}
           teacherDirectory={teacherDirectory}
           managers={managers}
           user={user}
@@ -1266,6 +1360,7 @@ export default function Calendar() {
           onCancel={cancelCalendarEvent}
           onSubstitute={substituteCalendarEvent}
           onEdit={(evt) => { setSelectedEvent(null); setEditingEvent(evt) }}
+          fetchSubSuggestions={fetchSubSuggestions}
         />
       )}
     </div>
