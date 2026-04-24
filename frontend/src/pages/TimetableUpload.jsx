@@ -7,7 +7,7 @@ import {
   patchTimetableUploadRequest,
   saveTimetableUploadRequest,
 } from '../utils/api'
-import { ClassPicker } from '../components/ClassPicker'
+import { ClassPicker, SubjectPicker } from '../components/ClassPicker'
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const EVENT_TYPES = ['LECTURE', 'LAB', 'ADMIN', 'EXTRA_DUTY', 'MEETING']
@@ -174,11 +174,11 @@ function SlotRow({ slot, index, teacherDirectory, onUpdate, onRemove }) {
           </div>
         </td>
         <td className="px-3 py-2">
-          <input
+          <SubjectPicker
+            eventType={local.eventType}
             value={local.subject}
-            onChange={(e) => setLocal({ ...local, subject: e.target.value })}
-            placeholder="e.g. CS401"
-            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs"
+            onChange={(val) => setLocal({ ...local, subject: val })}
+            selectCls="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs"
           />
         </td>
         <td className="px-3 py-2">
@@ -188,6 +188,7 @@ function SlotRow({ slot, index, teacherDirectory, onUpdate, onRemove }) {
               ...local,
               eventType: e.target.value,
               className: e.target.value !== local.eventType ? '' : local.className,
+              subject: e.target.value !== local.eventType ? '' : local.subject,
             })}
             className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs"
           >

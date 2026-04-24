@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
 import { getManagersRequest, exportMonthlyRequest, getUserCalendarEventsRequest, getSubstituteSuggestionsRequest } from '../utils/api'
-import { ClassPicker } from '../components/ClassPicker'
+import { ClassPicker, SubjectPicker } from '../components/ClassPicker'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -345,7 +345,12 @@ function EventModal({ onClose, onSave, initial, prefill, teacherDirectory, manag
   const handleChange = (field, value) => setForm((f) => {
     if (field === 'eventType') {
       const structured = (t) => t === 'LAB' || t === 'LECTURE'
-      return { ...f, eventType: value, className: structured(value) !== structured(f.eventType) ? '' : f.className }
+      return {
+        ...f,
+        eventType: value,
+        className: structured(value) !== structured(f.eventType) ? '' : f.className,
+        subject: value !== f.eventType ? '' : f.subject,
+      }
     }
     return { ...f, [field]: value }
   })
@@ -498,12 +503,11 @@ function EventModal({ onClose, onSave, initial, prefill, teacherDirectory, manag
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Subject</label>
-              <input
-                type="text"
+              <SubjectPicker
+                eventType={form.eventType}
                 value={form.subject}
-                onChange={(e) => handleChange('subject', e.target.value)}
-                placeholder="e.g. OS"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
+                onChange={(val) => handleChange('subject', val)}
+                selectCls="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-(--wfcts-primary) focus:outline-none"
               />
             </div>
             <div>

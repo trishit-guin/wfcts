@@ -2,6 +2,9 @@ export const LAB_BATCHES = ['E', 'F', 'G', 'H', 'K', 'L', 'M', 'N']
 export const LECTURE_YEARS = ['SE', 'TE']
 export const CLASS_DIVISIONS = ['9', '10', '11']
 
+export const LECTURE_SUBJECTS = ['OS', 'TOC', 'ML', 'HCI', 'DAA', 'ADBMS', 'CNS', 'DSBDA', 'WAD', 'CC']
+export const LAB_SUBJECTS = ['OSL', 'HCIL', 'LP DAA/ADBMS', 'LP1 ML', 'CNSL', 'DSBDAL', 'LP2 CCL', 'LP2 WADL']
+
 export function parseClassNameParts(className = '', eventType) {
   if (eventType === 'LAB') {
     const batch = LAB_BATCHES.find((b) => className.startsWith(b)) || ''
@@ -12,6 +15,32 @@ export function parseClassNameParts(className = '', eventType) {
     return { left: year, right: year ? className.slice(year.length) : '' }
   }
   return { left: '', right: '' }
+}
+
+// Dropdown for subject — shows predefined options for LAB/LECTURE, plain input otherwise.
+export function SubjectPicker({ eventType, value = '', onChange, selectCls, inputCls }) {
+  const subjects = eventType === 'LAB' ? LAB_SUBJECTS : eventType === 'LECTURE' ? LECTURE_SUBJECTS : null
+  if (!subjects) {
+    return (
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Subject"
+        className={inputCls || selectCls}
+      />
+    )
+  }
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={selectCls || inputCls}
+    >
+      <option value="">Select subject</option>
+      {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
+    </select>
+  )
 }
 
 // Renders two side-by-side selects for Batch+Div (LAB) or Year+Div (LECTURE).

@@ -41,7 +41,7 @@ A full-stack academic staff management platform for engineering colleges. Tracks
 - Full interactive week grid with 7-column layout, scrollable from 07:00 to 21:00
 - Timetable slots are overlaid as clickable ghost blocks — clicking one opens the Schedule Event modal pre-filled with that slot's subject, class, time, and the exact date of that column
 - Adding a slot manually or uploading a timetable automatically generates CalendarEvents for **16 weeks ahead** — no manual scheduling required
-- **IT dept class picker**: Class/Section field is replaced by smart dropdowns everywhere (Timetable, Calendar, Timetable Upload, Substitutions) — Lab → Batch (E–N) + Division (9/10/11); Lecture → Year (SE/TE) + Division (9/10/11); implemented as shared `ClassPicker` component
+- **IT dept smart pickers**: Subject and Class/Section fields are replaced by context-aware dropdowns everywhere (Timetable, Calendar, Timetable Upload, Substitutions) — Lab → subjects (OSL/HCIL/LP DAA-ADBMS/etc.) + Batch (E–N) + Division (9/10/11); Lecture → subjects (OS/TOC/ML/HCI/DAA/ADBMS/CNS/DSBDA/WAD/CC) + Year (SE/TE) + Division (9/10/11); switching type auto-clears subject and class; implemented as shared `ClassPicker` + `SubjectPicker` components
 - Event types: Lecture, Lab, Admin, Extra Duty, Meeting, Substitute Cover — each with a fairness weight multiplier
 - Teachers can schedule events for themselves; managers can schedule on behalf of any teacher
 - Events go through an **approval workflow**: teachers submit → manager approves/rejects

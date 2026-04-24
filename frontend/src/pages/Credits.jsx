@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
 import { formatDate } from '../utils/formatDate'
-import { ClassPicker } from '../components/ClassPicker'
+import { ClassPicker, SubjectPicker } from '../components/ClassPicker'
 
 function dayOfWeekFromDate(dateText) {
   const [y, m, d] = dateText.split('-').map(Number)
@@ -434,6 +434,7 @@ export default function Credits() {
                         ...p,
                         eventType: e.target.value,
                         className: e.target.value !== p.eventType ? '' : p.className,
+                        subject: e.target.value !== p.eventType ? '' : p.subject,
                       }))}
                       className={inputCls}
                     >
@@ -458,9 +459,11 @@ export default function Credits() {
                 <div className="mt-3">
                   <label className="space-y-1.5">
                     <span className="text-xs font-semibold text-slate-600">Subject <span className="font-normal text-(--wfcts-muted)">(optional)</span></span>
-                    <input type="text" placeholder="e.g. OS" value={form.subject}
-                      onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
-                      className={`${inputCls} max-w-xs`}
+                    <SubjectPicker
+                      eventType={form.eventType}
+                      value={form.subject}
+                      onChange={(val) => setForm((p) => ({ ...p, subject: val }))}
+                      selectCls={`${inputCls} max-w-xs`}
                     />
                   </label>
                 </div>
@@ -595,9 +598,11 @@ export default function Credits() {
                 </label>
                 <label className="space-y-1.5 sm:col-span-2">
                   <span className="text-xs font-semibold text-slate-600">Subject <span className="font-normal text-(--wfcts-muted)">(optional)</span></span>
-                  <input type="text" placeholder="e.g. OS" value={form.subject}
-                    onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
-                    className={inputGreenCls}
+                  <SubjectPicker
+                    eventType={form.eventType}
+                    value={form.subject}
+                    onChange={(val) => setForm((p) => ({ ...p, subject: val }))}
+                    selectCls={inputGreenCls}
                   />
                 </label>
               </div>

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useWFCTS } from '../context/WFCTSContext'
-import { ClassPicker, LAB_BATCHES, LECTURE_YEARS, CLASS_DIVISIONS, parseClassNameParts } from '../components/ClassPicker'
+import { ClassPicker, SubjectPicker, LAB_BATCHES, LECTURE_YEARS, CLASS_DIVISIONS, parseClassNameParts } from '../components/ClassPicker'
 
 const dayOptions = [
   { value: 1, short: 'Mon', label: 'Monday' },
@@ -344,6 +344,7 @@ export default function Timetable() {
                           ...prev,
                           eventType: next,
                           className: structured(next) !== structured(prev.eventType) ? '' : prev.className,
+                          subject: next !== prev.eventType ? '' : prev.subject,
                         }))
                       }}
                       className="w-full rounded-[1rem] border border-slate-200 bg-[var(--wfcts-surface-muted)] px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[var(--wfcts-primary)]/20 focus:bg-white focus:ring-2 focus:ring-[var(--wfcts-primary)]/10"
@@ -358,12 +359,11 @@ export default function Timetable() {
 
                   <label className="space-y-2">
                     <span className="text-sm font-semibold text-slate-700">Subject</span>
-                    <input
-                      type="text"
+                    <SubjectPicker
+                      eventType={form.eventType}
                       value={form.subject}
-                      onChange={(event) => setForm((prev) => ({ ...prev, subject: event.target.value }))}
-                      placeholder="Subject"
-                      className="w-full rounded-[1rem] border border-slate-200 bg-[var(--wfcts-surface-muted)] px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[var(--wfcts-primary)]/20 focus:bg-white focus:ring-2 focus:ring-[var(--wfcts-primary)]/10"
+                      onChange={(val) => setForm((prev) => ({ ...prev, subject: val }))}
+                      selectCls="w-full rounded-2xl border border-slate-200 bg-(--wfcts-surface-muted) px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-(--wfcts-primary)/20 focus:bg-white focus:ring-2 focus:ring-(--wfcts-primary)/10"
                     />
                   </label>
 
